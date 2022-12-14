@@ -42,10 +42,22 @@ class ConditionalBool(Substitution):
             
 def launch_setup(context, *args, **kwargs):      
 
-    rtabros_dir = get_package_share_directory('rtabmap_ros')
-    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabros_dir + '/launch/mbari_stereo_proc.launch.py'))
+    lcm_to_ros2_dir = get_package_share_directory('lcm_to_ros2')
+    rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
+
+    lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/mbari_republishers.launch.py'))
+    robot_localization_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/ocean_imaging_robot_localization.launch.py'))
+    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_stereo_proc.launch.py'))
+
     return [
-        # DeclareLaunchArgument('subscribe_rgb', default_value=1, description=''),
+
+        SetParameter(name='use_sim_time', value=True),
+        # 'use_sim_time' will be set on all nodes following the line above
+
+        lcm_to_ros2_launch,
+        robot_localization_launch,
+        stereo_proc_launch,
+
         DeclareLaunchArgument('args',  default_value=LaunchConfiguration('rtabmap_args'), description='Can be used to pass RTAB-Map\'s parameters or other flags like --udebug and --delete_db_on_start/-d'),
         DeclareLaunchArgument('qos_image',       default_value=LaunchConfiguration('qos'), description='Specific QoS used for image input data: 0=system default, 1=Reliable, 2=Best Effort.'),
         DeclareLaunchArgument('qos_camera_info', default_value=LaunchConfiguration('qos'), description='Specific QoS used for camera info input data: 0=system default, 1=Reliable, 2=Best Effort.'),
@@ -56,14 +68,14 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
     
-        SetParameter(name='use_sim_time', value=LaunchConfiguration('use_sim_time')),
-        # 'use_sim_time' will be set on all nodes following the line above
-    
-        stereo_proc_launch,
+        Node(
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
+            arguments=['0.4552', '0.46534', '-0.96', '1', '0', '0', '0', 'base_link', 'stereo_camera/left' ],
+            namespace=LaunchConfiguration('namespace')),
 
         Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_cam_publisher',
-            arguments=['0.4552', '0.46534', '-0.96', '1', '0', '0', '0', 'base_link', 'stereo_camera/left' ],
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
+            arguments=['0.4552', '0.445347184', '-0.96', '1', '0', '0', '0', 'base_link', 'stereo_camera/right' ],
             namespace=LaunchConfiguration('namespace')),
 
         # Relays Stereo

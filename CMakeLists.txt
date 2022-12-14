@@ -745,9 +745,15 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #)
 install(DIRECTORY 
    launch/ros2/.
+   mbari/launch/.
 #   launch/data
 #   launch/demo
    DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(DIRECTORY 
+   mbari/robot_localization_params/.
+   DESTINATION share/${PROJECT_NAME}/robot_localization_params
 )
 
 ## install plugins/nodelets xml

@@ -1,0 +1,42 @@
+%YAML:1.0
+---
+camera_name: rtabmap_calib_left
+image_width: 1936
+image_height: 1456
+rate_hz: 0.333
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 1.2019881600000001e+03, 0.0, 1.0064810800000000e+03, 0.0,
+       1.1996312000000000e+03, 7.4556886799999995e+02, 0.0, 0.0, 1.0 ]
+distortion_coefficients: !!opencv-matrix
+   rows: 1
+   cols: 8
+   dt: d
+   data: [ -1.2862854400000000e+01, -3.6574767000000001e+00, 
+       2.0490986600000000e-03, 7.1665722499999999e-05, 
+       4.7662058400000001e+02, -1.2967781100000000e+01, 
+       -1.9273240100000000e+00, 4.6870749999999998e+02 ]
+distortion_model: rational_polynomial
+rectification_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 0.9999715,  0.00721884, -0.00221061, 
+           -0.00722215, 0.9999728, -0.00149512,
+           0.00219976,  0.00151104,  0.99999644 ]
+projection_matrix: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [ 1.25023590e+03, 0.0, 9.96494347e+02, 0.0, 0.0,
+       1.25023590e+03, 7.40215805e+02, 0.0, 0.0, 0.0, 1.0,
+       0.0 ]
+local_transform: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [  1.204000e-04, -8.203000e-04, 9.999996e-01,  4.55200e-01, 
+           -2.112000e-04,  9.999996e-01, 8.203000e-04,  4.65350e-01, 
+           -1.000000e+00, -2.113000e-04, 1.203000e-04, -9.6000e-02 ]
