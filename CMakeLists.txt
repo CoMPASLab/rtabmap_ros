@@ -743,18 +743,26 @@ install(DIRECTORY include/${PROJECT_NAME}/
 #   launch/rgbd_mapping_kinect2.launch
 #   DESTINATION share/${PROJECT_NAME}/launch
 #)
+
+
+## MBARI specific
+
 install(DIRECTORY 
    launch/ros2/.
-   mbari/launch/.
-#   launch/data
-#   launch/demo
+   mbari/launch_files/.
    DESTINATION share/${PROJECT_NAME}/launch
 )
 
 install(DIRECTORY 
-   mbari/robot_localization_params/.
-   DESTINATION share/${PROJECT_NAME}/robot_localization_params
+   mbari/camera_calibrations/.
+   DESTINATION share/${PROJECT_NAME}/launch/camera_calibrations
 )
+install(DIRECTORY 
+   mbari/robot_localization_params/.
+   DESTINATION share/${PROJECT_NAME}/launch/robot_localization_params
+)
+
+##
 
 ## install plugins/nodelets xml
 #install(FILES
