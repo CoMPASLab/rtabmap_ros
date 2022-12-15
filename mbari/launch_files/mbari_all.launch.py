@@ -23,12 +23,13 @@ def generate_launch_description():
     right_calib_path = os.path.join(
         get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
     )
+
     
     return LaunchDescription([
             SetParameter(name='use_sim_time', value=False),
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
-            DeclareLaunchArgument('odom_guess_frame_id', default_value='', description=''),
+            DeclareLaunchArgument('odom_guess_frame_id', default_value='odom', description=''),
             lcm_to_ros2_launch,
             robot_localization_launch,
             stereo_proc_launch,
