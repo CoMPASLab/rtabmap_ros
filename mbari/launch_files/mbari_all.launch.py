@@ -26,7 +26,7 @@ def generate_launch_description():
 
 
     return LaunchDescription([
-            DeclareLaunchArgument('use_sim_time', default_value='true'),
+            DeclareLaunchArgument('use_sim_time', default_value='false'),
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
             DeclareLaunchArgument('publish_tf_odom', default_value='false',  description=''),
