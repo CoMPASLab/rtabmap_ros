@@ -15,23 +15,34 @@
 
 import os
 from launch import LaunchDescription
+from launch.substitutions import LaunchConfiguration
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import Node
+
 
 def generate_launch_description():
     return LaunchDescription([
 
         Node(
             package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
-            arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link' ]),
+            arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link' ],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }]
+        ),
         Node(
             package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-            arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link' ]),
+            arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link' ],
+            parameters=[{
+                'use_sim_time': LaunchConfiguration('use_sim_time'),
+            }]
+        ),
         Node(
             package='robot_localization',
             executable='ekf_node',
             name='ekf_filter_node',
             output='screen',
-            parameters=[os.path.join(get_package_share_directory("rtabmap_ros"), 'launch', 'robot_localization_params', 'ocean_imaging.yaml')],
+            parameters=[os.path.join(get_package_share_directory("rtabmap_ros"), 'launch', 'robot_localization_params', 'ocean_imaging.yaml'),
+                {"use_sim_time": LaunchConfiguration('use_sim_time')}],
         ),
 ])

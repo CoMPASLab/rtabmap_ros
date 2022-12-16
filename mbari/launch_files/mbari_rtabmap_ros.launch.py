@@ -14,6 +14,7 @@ from launch_ros.actions import Node
 from launch_ros.actions import SetParameter
 from typing import Text
 from ament_index_python.packages import get_package_share_directory
+import math
 
 #Based on https://answers.ros.org/question/363763/ros2-how-best-to-conditionally-include-a-prefix-in-a-launchpy-file/
 class ConditionalText(Substitution):
@@ -55,12 +56,14 @@ def launch_setup(context, *args, **kwargs):
     
         Node(
             package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-            arguments=['0.4552', '0.46534', '-0.96', '1', '0', '0', '0', 'base_link', 'stereo_camera/left' ],
+            arguments=['0.4552', '0.46534', '-0.96', str(math.pi / 2), str(math.pi), '0', 'base_link', 'stereo_camera/left' ],
+            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')),
 
         Node(
             package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-            arguments=['0.4552', '0.445347184', '-0.96', '1', '0', '0', '0', 'base_link', 'stereo_camera/right' ],
+            arguments=['0.4552', '0.445347184', '-0.96', str(math.pi / 2), str(math.pi), '0', 'base_link', 'stereo_camera/right' ],
+            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')),
 
         # Relays Stereo
@@ -88,7 +91,8 @@ def launch_setup(context, *args, **kwargs):
         #         "approx_sync_max_interval": LaunchConfiguration('approx_sync_max_interval'),
         #         "queue_size": LaunchConfiguration('queue_size'),
         #         "qos": LaunchConfiguration('qos_image'),
-        #         "qos_camera_info": LaunchConfiguration('qos_camera_info')}],
+        #         "qos_camera_info": LaunchConfiguration('qos_camera_info'),
+        #         "use_sim_time": LaunchConfiguration('use_sim_time')}]
         #     remappings=[
         #         ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
         #         ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
@@ -116,13 +120,15 @@ def launch_setup(context, *args, **kwargs):
                 "qos_camera_info": LaunchConfiguration('qos_camera_info'),
                 "guess_frame_id": LaunchConfiguration('odom_guess_frame_id').perform(context),
                 "guess_min_translation": LaunchConfiguration('odom_guess_min_translation'),
-                "guess_min_rotation": LaunchConfiguration('odom_guess_min_rotation')}],
+                "guess_min_rotation": LaunchConfiguration('odom_guess_min_rotation'),
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+            }],
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
                 ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
-                ("odom", LaunchConfiguration('odom_topic'))],
+                ("odom", "odom")],
             arguments=[LaunchConfiguration("args"), LaunchConfiguration("odom_args")],
             prefix=LaunchConfiguration('launch_prefix'),
             namespace=LaunchConfiguration('namespace')),
@@ -155,6 +161,7 @@ def launch_setup(context, *args, **kwargs):
                 "qos_user_data": LaunchConfiguration('qos_user_data'),
                 "landmark_linear_variance": LaunchConfiguration('tag_linear_variance'),
                 "landmark_angular_variance": LaunchConfiguration('tag_angular_variance'),
+                "use_sim_time": LaunchConfiguration('use_sim_time'),
                 "Mem/IncrementalMemory": ConditionalText("true", "false", IfCondition(PythonExpression(["'", LaunchConfiguration('localization'), "' != 'true'"]))._predicate_func(context)).perform(context),
                 "Mem/InitWMWithAllNodes": ConditionalText("true", "false", IfCondition(PythonExpression(["'", LaunchConfiguration('localization'), "' == 'true'"]))._predicate_func(context)).perform(context)
             }],
@@ -184,7 +191,8 @@ def launch_setup(context, *args, **kwargs):
                 "qos_image": LaunchConfiguration('qos_image'),
                 "qos_odom": LaunchConfiguration('qos_odom'),
                 "qos_camera_info": LaunchConfiguration('qos_camera_info'),
-                "qos_user_data": LaunchConfiguration('qos_user_data')
+                "qos_user_data": LaunchConfiguration('qos_user_data'),
+                "use_sim_time": LaunchConfiguration('use_sim_time')
             }],
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -231,7 +239,7 @@ def generate_launch_description():
         DeclareLaunchArgument('localization', default_value='false', description='Launch in localization mode.'),
         DeclareLaunchArgument('rtabmapviz',   default_value='true',  description='Launch RTAB-Map UI (optional).'),
         DeclareLaunchArgument('rviz',         default_value='false', description='Launch RVIZ (optional).'),
-        DeclareLaunchArgument('use_sim_time', default_value='false', description='Use simulation (Gazebo) clock if true'),
+        DeclareLaunchArgument('use_sim_time', default_value='true', description='Use simulation (Gazebo) clock if true'),
 
         # Config files
         DeclareLaunchArgument('cfg',      default_value='',                        description='To change RTAB-Map\'s parameters, set the path of config file (*.ini) generated by the standalone app.'),
@@ -273,13 +281,13 @@ def generate_launch_description():
         DeclareLaunchArgument('visual_odometry',            default_value='true',  description='Launch rtabmap visual odometry node.'),
         DeclareLaunchArgument('icp_odometry',               default_value='false', description='Launch rtabmap icp odometry node.'),
         DeclareLaunchArgument('odom_topic',                 default_value='odom',  description='Odometry topic name.'),
-        DeclareLaunchArgument('vo_frame_id',                default_value=LaunchConfiguration('odom_topic'), description='Visual/Icp odometry frame ID for TF.'),
-        DeclareLaunchArgument('publish_tf_odom',            default_value='true',  description=''),
+        DeclareLaunchArgument('vo_frame_id',                default_value='odom'),
+        DeclareLaunchArgument('publish_tf_odom',            default_value='false',  description=''),
         DeclareLaunchArgument('odom_tf_angular_variance',   default_value='0.01',    description='If TF is used to get odometry, this is the default angular variance'),
         DeclareLaunchArgument('odom_tf_linear_variance',    default_value='0.001',   description='If TF is used to get odometry, this is the default linear variance'),
         DeclareLaunchArgument('odom_args',                  default_value='',      description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
         DeclareLaunchArgument('odom_sensor_sync',           default_value='false', description=''),
-        DeclareLaunchArgument('odom_guess_frame_id',        default_value='',      description=''),
+        DeclareLaunchArgument('odom_guess_frame_id',        default_value='odom',      description=''),
         DeclareLaunchArgument('odom_guess_min_translation', default_value='0.0',   description=''),
         DeclareLaunchArgument('odom_guess_min_rotation',    default_value='0.0',   description=''),
         

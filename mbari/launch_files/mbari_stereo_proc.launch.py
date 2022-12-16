@@ -17,24 +17,25 @@ def generate_launch_description():
             description='Use the RMW QoS settings for the image and camera info subscriptions.'
         ),
         ComposableNodeContainer(
-            node_name='image_proc_container_left',
+            name='image_proc_container_left',
             package='rclcpp_components',
-            node_executable='component_container',
-            node_namespace='',
+            executable='component_container',
+            namespace='',
             composable_node_descriptions=[
                 ComposableNode(
                     package='image_proc',
-                    node_plugin='image_proc::DebayerNode',
-                    node_name='debayer_node',
+                    plugin='image_proc::DebayerNode',
+                    name='debayer_node',
                     namespace='stereo_camera/left',
                     parameters=[{
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 ),
                 ComposableNode(
                     package='image_proc',
-                    node_plugin='image_proc::RectifyNode',
-                    node_name='rectify_color_node',
+                    plugin='image_proc::RectifyNode',
+                    name='rectify_color_node',
                     namespace='stereo_camera/left',
                     remappings=[
                         ('image', 'image_color'),
@@ -42,30 +43,32 @@ def generate_launch_description():
                     ],
                     parameters=[{
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 )
             ],
             output='screen'
         ),
         ComposableNodeContainer(
-            node_name='image_proc_container_right',
+            name='image_proc_container_right',
             package='rclcpp_components',
-            node_executable='component_container',
-            node_namespace='',
+            executable='component_container',
+            namespace='',
             composable_node_descriptions=[
                 ComposableNode(
                     package='image_proc',
-                    node_plugin='image_proc::DebayerNode',
-                    node_name='debayer_node',
+                    plugin='image_proc::DebayerNode',
+                    name='debayer_node',
                     namespace='stereo_camera/right',
                     parameters=[{
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 ),
                 ComposableNode(
                     package='image_proc',
-                    node_plugin='image_proc::RectifyNode',
-                    node_name='rectify_mono_node',
+                    plugin='image_proc::RectifyNode',
+                    name='rectify_mono_node',
                     namespace='stereo_camera/right',
                     remappings=[
                         ('image', 'image_mono'),
@@ -74,6 +77,7 @@ def generate_launch_description():
                     ],
                     parameters=[{
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 )
             ],
