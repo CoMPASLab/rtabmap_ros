@@ -164,6 +164,7 @@ private:
 	void fiducialDetectionsAsyncCallback(const fiducial_msgs::msgs::FiducialTransformArray::SharedPtr fiducialDetections);
 #endif
 	void imuAsyncCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+    void absoluteDepthAsyncCallback(const rtabmap_ros::msg::EnvSensor::SharedPtr msg);
 	void republishNodeDataCallback(const std_msgs::msg::Int32MultiArray::ConstSharedPtr msg);
 	void interOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const rtabmap_ros::msg::OdomInfo::ConstSharedPtr & msg2);
@@ -382,9 +383,13 @@ private:
 #endif
 	std::map<int, std::pair<geometry_msgs::msg::PoseWithCovarianceStamped, float> > tags_; // id, <pose, size>
 	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imuSub_;
+	rclcpp::Subscription<rtabmap_ros::msg::EnvSensor>::SharedPtr absoluteDepthSub_;
 
 	std::map<double, rtabmap::Transform> imus_;
+	std::map<double, float> absoluteDepths_;
+
 	std::string imuFrameId_;
+	std::string depthFrameId_;
 	rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr republishNodeDataSub_;
 
 	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr interOdomSub_;

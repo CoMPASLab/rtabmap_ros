@@ -775,8 +775,11 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 
 	int qosGPS = 0;
 	int qosIMU = 0;
+	int qosAbsoluteDepth = 0;
 	qosGPS = this->declare_parameter("qos_gps", qosGPS);
 	qosIMU = this->declare_parameter("qos_imu", qosIMU);
+	qosAbsoluteDepth = this->declare_parameter("qos_absolute_depth", qosAbsoluteDepth);
+
 	userDataAsyncSub_ = this->create_subscription<rtabmap_ros::msg::UserData>("user_data_async", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qosUserData_), std::bind(&CoreWrapper::userDataAsyncCallback, this, std::placeholders::_1));
 	globalPoseAsyncSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("global_pose", 5, std::bind(&CoreWrapper::globalPoseAsyncCallback, this, std::placeholders::_1));
 	gpsFixAsyncSub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gps/fix", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qosGPS), std::bind(&CoreWrapper::gpsFixAsyncCallback, this, std::placeholders::_1));
@@ -787,6 +790,7 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	fiducialTransfromsSub_ = this->create_subscription<fiducial_msgs::msg::FiducialTransformArray>("fiducial_transforms", 5, std::bind(&CoreWrapper::fiducialDetectionsAsyncCallback, this, std::placeholders::_1));
 #endif
 	imuSub_ = this->create_subscription<sensor_msgs::msg::Imu>("imu", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosIMU), std::bind(&CoreWrapper::imuAsyncCallback, this, std::placeholders::_1));
+	absoluteDepthSub_ = this->create_subscription<rtabmap_ros::msg::EnvSensor>("absolute_depth", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosAbsoluteDepth), std::bind(&CoreWrapper::absoluteDepthAsyncCallback, this, std::placeholders::_1));
 	republishNodeDataSub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("republish_node_data", 5, std::bind(&CoreWrapper::republishNodeDataCallback, this, std::placeholders::_1));
 
 	parametersClient_ = std::make_shared<rclcpp::SyncParametersClient>(this);
@@ -1131,7 +1135,8 @@ void CoreWrapper::commonMultiCameraCallback(
 		const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs,
 		const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > & localKeyPoints,
 		const std::vector<std::vector<rtabmap_ros::msg::Point3f> > & localPoints3d,
-		const std::vector<cv::Mat> & localDescriptors)
+		const std::vector<cv::Mat> & localDescriptors
+        )
 {
 	std::string odomFrameId = odomFrameId_;
 	if(odomMsg.get())
@@ -1203,7 +1208,8 @@ void CoreWrapper::commonMultiCameraCallbackImpl(
 		const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs,
 		const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > & localKeyPointsMsgs,
 		const std::vector<std::vector<rtabmap_ros::msg::Point3f> > & localPoints3dMsgs,
-		const std::vector<cv::Mat> & localDescriptorsMsgs)
+		const std::vector<cv::Mat> & localDescriptorsMsgs
+        )
 {
 	UTimer timerConversion;
 	cv::Mat rgb;
@@ -1469,7 +1475,7 @@ void CoreWrapper::commonMultiCameraCallbackImpl(
 	{
 		data.setGlobalDescriptors(rtabmap_ros::globalDescriptorsFromROS(globalDescriptorMsgs));
 	}
-
+    
 	if(!keypoints.empty())
 	{
 		UASSERT(points.empty() || points.size() == keypoints.size());
@@ -1902,6 +1908,44 @@ void CoreWrapper::process(
 			}
 		}
 
+		// Absolute depths
+		if(!absoluteDepths_.empty())
+		{
+	        std::map<double, float> newAbsoluteDepths;
+            float depthTimestamp = 0.f;
+            float depthValue = 0.f;
+            float timestamp = stamp.seconds();
+            for (const auto& depth : absoluteDepths_) {
+                if (depthTimestamp > timestamp) 
+                {
+                    newAbsoluteDepths[depth.first] = depth.second;
+                }
+                else
+                {
+                    depthTimestamp = depth.first;
+                    depthValue = depth.second;
+                }
+            }
+            
+            rtabmap::Transform localTransform;
+            if(frameId_.compare(depthFrameId_) != 0)
+            {
+                localTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+            }
+            else
+            {
+                localTransform = rtabmap::Transform::getIdentity();
+            }
+
+            if(!localTransform.isNull())
+            {
+                RCLCPP_INFO(get_logger(), "Using absolute depth: %f", depthValue);
+                float depth_rotated = (odom.rotation() * localTransform).z();
+                data.setAbsoluteDepth(depthValue + depth_rotated);
+                absoluteDepths_ = newAbsoluteDepths;
+            }
+        }
+
 		double timeRtabmap = 0.0;
 		double timeUpdateMaps = 0.0;
 		double timePublishMaps = 0.0;
@@ -2324,6 +2368,19 @@ void CoreWrapper::fiducialDetectionsAsyncCallback(const fiducial_msgs::msg::Fidu
 }
 #endif
 
+void CoreWrapper::absoluteDepthAsyncCallback(const rtabmap_ros::msg::EnvSensor::SharedPtr msg)
+{
+	if(!paused_)
+	{
+        absoluteDepths_.insert(std::make_pair(timestampFromROS(msg->header.stamp), msg->value));
+		depthFrameId_ = msg->header.frame_id;
+        if(absoluteDepths_.size() > 1000)
+        {
+            absoluteDepths_.erase(absoluteDepths_.begin());
+        }
+	}
+}
+
 void CoreWrapper::imuAsyncCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
 	if(!paused_)
@@ -2676,7 +2733,9 @@ void CoreWrapper::resetRtabmapCallback(
 	userData_ = cv::Mat();
 	userDataMutex_.unlock();
 	imus_.clear();
+	absoluteDepths_.clear();
 	imuFrameId_.clear();
+	depthFrameId_.clear();
 	interOdoms_.clear();
 	mapToOdomMutex_.lock();
 	mapToOdom_.setIdentity();
@@ -2770,7 +2829,9 @@ void CoreWrapper::loadDatabaseCallback(
 	userData_ = cv::Mat();
 	userDataMutex_.unlock();
 	imus_.clear();
+	absoluteDepths_.clear();
 	imuFrameId_.clear();
+	depthFrameId_.clear();
 	interOdoms_.clear();
 	mapToOdomMutex_.lock();
 	mapToOdom_.setIdentity();

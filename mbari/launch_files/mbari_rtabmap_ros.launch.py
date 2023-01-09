@@ -66,6 +66,12 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')),
 
+        Node(
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
+            arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', 'base_link', 'depth_link' ],
+            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+            namespace=LaunchConfiguration('namespace')),
+
         # Relays Stereo
         Node(
             package='image_transport', executable='republish', name='republish_left',
@@ -159,6 +165,7 @@ def launch_setup(context, *args, **kwargs):
                 "qos_odom": LaunchConfiguration('qos_odom'),
                 "qos_camera_info": LaunchConfiguration('qos_camera_info'),
                 "qos_user_data": LaunchConfiguration('qos_user_data'),
+                "qos_absolute_depth": LaunchConfiguration('qos_absolute_depth'),
                 "landmark_linear_variance": LaunchConfiguration('tag_linear_variance'),
                 "landmark_angular_variance": LaunchConfiguration('tag_angular_variance'),
                 "use_sim_time": LaunchConfiguration('use_sim_time'),
@@ -172,6 +179,7 @@ def launch_setup(context, *args, **kwargs):
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
                 ("user_data", LaunchConfiguration('user_data_topic')),
                 ("user_data_async", LaunchConfiguration('user_data_async_topic')),
+                ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
                 ("odom", LaunchConfiguration('odom_topic'))],
             arguments=[LaunchConfiguration("args")],
             prefix=LaunchConfiguration('launch_prefix'),
@@ -192,6 +200,7 @@ def launch_setup(context, *args, **kwargs):
                 "qos_odom": LaunchConfiguration('qos_odom'),
                 "qos_camera_info": LaunchConfiguration('qos_camera_info'),
                 "qos_user_data": LaunchConfiguration('qos_user_data'),
+                "qos_absolute_depth": LaunchConfiguration('qos_absolute_depth'),
                 "use_sim_time": LaunchConfiguration('use_sim_time')
             }],
             remappings=[
@@ -199,6 +208,7 @@ def launch_setup(context, *args, **kwargs):
                 ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
+                ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
                 ("odom", LaunchConfiguration('odom_topic'))],
             condition=IfCondition(LaunchConfiguration("rtabmapviz")),
             arguments=[LaunchConfiguration("gui_cfg")],
@@ -265,6 +275,10 @@ def generate_launch_description():
         
         DeclareLaunchArgument('approx_sync',  default_value='false',            description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
         DeclareLaunchArgument('approx_sync_max_interval',  default_value='0.0', description='(sec) 0 means infinite interval duration (used with approx_sync=true)'),
+
+        # Absolute depth topic
+        DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
+        DeclareLaunchArgument('qos_absolute_depth', default_value='2', description='QoS used exclusively for absolute depth data: 0=system default, 1=Reliable, 2=Best Effort.'),
         
         # Stereo related topics
         DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
