@@ -1912,13 +1912,21 @@ void CoreWrapper::process(
 		if(!absoluteDepths_.empty())
 		{
 	        std::map<double, float> newAbsoluteDepths;
-            float depthTimestamp = 0.f;
-            float depthValue = 0.f;
-            float timestamp = stamp.seconds();
+            double depthTimestamp = absoluteDepths_.begin()->first;
+            float depthValue = absoluteDepths_.begin()->second;
+            double poseTimestamp = stamp.nanoseconds() * 1e-9;
+            bool addRest = false;
             for (const auto& depth : absoluteDepths_) {
-                if (depthTimestamp > timestamp) 
-                {
+                if (addRest) {
                     newAbsoluteDepths[depth.first] = depth.second;
+                }
+                else if (depth.first > poseTimestamp) 
+                {
+                    // Interpolate depth between timestamps
+                    double interpolation = (poseTimestamp - depthTimestamp) / (depth.first - depthTimestamp); 
+                    depthValue = depthValue + (depth.second - depthValue) * interpolation;
+                    newAbsoluteDepths[depth.first] = depth.second;
+                    addRest = true;
                 }
                 else
                 {
@@ -1939,7 +1947,7 @@ void CoreWrapper::process(
 
             if(!localTransform.isNull())
             {
-                RCLCPP_INFO(get_logger(), "Using absolute depth: %f", depthValue);
+                RCLCPP_INFO(get_logger(), "Using absolute depth %f at %lf ", depthValue, depthTimestamp);
                 float depth_rotated = (odom.rotation() * localTransform).z();
                 data.setAbsoluteDepth(depthValue + depth_rotated);
                 absoluteDepths_ = newAbsoluteDepths;
@@ -2372,7 +2380,7 @@ void CoreWrapper::absoluteDepthAsyncCallback(const rtabmap_ros::msg::EnvSensor::
 {
 	if(!paused_)
 	{
-        absoluteDepths_.insert(std::make_pair(timestampFromROS(msg->header.stamp), msg->value));
+        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, msg->value));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
         {
