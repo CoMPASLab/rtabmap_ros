@@ -267,6 +267,7 @@ private:
 	std::string groundTruthBaseFrameId_;
 	std::string configPath_;
 	std::string databasePath_;
+    std::string outputTrajectoryPath_ = "";
 
 	double tfDelay;
 	double tfTolerance;

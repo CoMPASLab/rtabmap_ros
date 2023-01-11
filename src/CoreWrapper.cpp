@@ -199,6 +199,8 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	stereoToDepth_ = this->declare_parameter("stereo_to_depth", stereoToDepth_);
 	odomSensorSync_ = this->declare_parameter("odom_sensor_sync", odomSensorSync_);
 
+    outputTrajectoryPath_ = this->declare_parameter("trajectory_path", outputTrajectoryPath_);
+
 	RCLCPP_INFO(this->get_logger(), "rtabmap: frame_id      = %s", frameId_.c_str());
 	if(!odomFrameId_.empty())
 	{
@@ -832,6 +834,17 @@ CoreWrapper::~CoreWrapper()
 		transformThread_->join();
 		delete transformThread_;
 	}
+
+    // Trajectory saving
+    if (!outputTrajectoryPath_.empty())
+    {
+	    RCLCPP_INFO(this->get_logger(), "Saving trajectory to %s", outputTrajectoryPath_.c_str());
+        rtabmap_.saveCurrentTrajectory(outputTrajectoryPath_);
+    }
+    else
+    {
+	    RCLCPP_INFO(this->get_logger(), "Not saving trajectory as no path was provided");
+    }
 
 	this->saveParameters(configPath_);
 

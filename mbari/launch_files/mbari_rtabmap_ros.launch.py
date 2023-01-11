@@ -89,23 +89,6 @@ def launch_setup(context, *args, **kwargs):
                 ('out', LaunchConfiguration('right_image_topic_relay'))], 
             arguments=[LaunchConfiguration('rgb_image_transport'), 'raw'],
             namespace=LaunchConfiguration('namespace')),
-        # Node(
-        #     package='rtabmap_ros', executable='stereo_sync', output="screen",
-        #     condition=IfCondition(PythonExpression(["'", LaunchConfiguration('stereo'), "' == 'true' and '", LaunchConfiguration('rgbd_sync'), "' == 'true'"])),
-        #     parameters=[{
-        #         "approx_sync": LaunchConfiguration('approx_rgbd_sync'),
-        #         "approx_sync_max_interval": LaunchConfiguration('approx_sync_max_interval'),
-        #         "queue_size": LaunchConfiguration('queue_size'),
-        #         "qos": LaunchConfiguration('qos_image'),
-        #         "qos_camera_info": LaunchConfiguration('qos_camera_info'),
-        #         "use_sim_time": LaunchConfiguration('use_sim_time')}]
-        #     remappings=[
-        #         ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
-        #         ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
-        #         ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
-        #         ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
-        #         ("rgbd_image", LaunchConfiguration('rgbd_topic_relay'))],
-        #     namespace=LaunchConfiguration('namespace')),
         
         # Stereo odometry
         Node(
@@ -158,6 +141,7 @@ def launch_setup(context, *args, **kwargs):
                 "odom_sensor_sync": LaunchConfiguration('odom_sensor_sync'),
                 "wait_for_transform": LaunchConfiguration('wait_for_transform'),
                 "database_path": LaunchConfiguration('database_path'),
+                "trajectory_path": LaunchConfiguration('trajectory_path'),
                 "approx_sync": LaunchConfiguration('approx_sync'),
                 "config_path": LaunchConfiguration('cfg').perform(context),
                 "queue_size": LaunchConfiguration('queue_size'),
@@ -269,6 +253,7 @@ def generate_launch_description():
         DeclareLaunchArgument('args',           default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
         DeclareLaunchArgument('launch_prefix',  default_value='',                   description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
         DeclareLaunchArgument('output',         default_value='screen',             description='Control node output (screen or log).'),
+        DeclareLaunchArgument('trajectory_path', default_value='output_trajectory.csv', description='Where trajectory is saved (leave empty to disable saving).'),
         
         DeclareLaunchArgument('ground_truth_frame_id',      default_value='', description='e.g., "world"'),
         DeclareLaunchArgument('ground_truth_base_frame_id', default_value='', description='e.g., "tracker", a fake frame matching the frame "frame_id" (but on different TF tree)'),
