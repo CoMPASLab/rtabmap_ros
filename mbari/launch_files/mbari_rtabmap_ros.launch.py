@@ -54,14 +54,14 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
     
         Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-            arguments=['0.4552', '0.46534', '-0.96', str(math.pi / 2), str(math.pi), '0', 'base_link', 'stereo_camera/left' ],
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
+            arguments=['0.4552', '0.46535', '-0.096', '-7.07032034e-01', '7.07181399e-01', '-3.32573011e-04', '-2.47479010e-04', 'base_link', 'stereo_camera/left' ],
             parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')),
 
         Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-            arguments=['0.4552', '0.445347184', '-0.96', str(math.pi / 2), str(math.pi), '0', 'base_link', 'stereo_camera/right' ],
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
+            arguments=['0.4552', '0.445347184', '-0.096', '-7.06993096e-01', '7.07220211e-01', '-4.38673721e-04', '-3.79566676e-04', 'base_link', 'stereo_camera/right' ],
             parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')),
 
