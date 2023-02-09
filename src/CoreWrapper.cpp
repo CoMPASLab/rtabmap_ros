@@ -27,6 +27,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "rtabmap_ros/CoreWrapper.h"
 
+#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <stdio.h>
 #include <thread>
 #include <rclcpp/rclcpp.hpp>
@@ -792,7 +793,7 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	fiducialTransfromsSub_ = this->create_subscription<fiducial_msgs::msg::FiducialTransformArray>("fiducial_transforms", 5, std::bind(&CoreWrapper::fiducialDetectionsAsyncCallback, this, std::placeholders::_1));
 #endif
 	imuSub_ = this->create_subscription<sensor_msgs::msg::Imu>("imu", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosIMU), std::bind(&CoreWrapper::imuAsyncCallback, this, std::placeholders::_1));
-	absoluteDepthSub_ = this->create_subscription<rtabmap_ros::msg::EnvSensor>("absolute_depth", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosAbsoluteDepth), std::bind(&CoreWrapper::absoluteDepthAsyncCallback, this, std::placeholders::_1));
+	absoluteDepthSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("absolute_depth", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosAbsoluteDepth), std::bind(&CoreWrapper::absoluteDepthAsyncCallback, this, std::placeholders::_1));
 	republishNodeDataSub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>("republish_node_data", 5, std::bind(&CoreWrapper::republishNodeDataCallback, this, std::placeholders::_1));
 
 	parametersClient_ = std::make_shared<rclcpp::SyncParametersClient>(this);
@@ -2389,11 +2390,11 @@ void CoreWrapper::fiducialDetectionsAsyncCallback(const fiducial_msgs::msg::Fidu
 }
 #endif
 
-void CoreWrapper::absoluteDepthAsyncCallback(const rtabmap_ros::msg::EnvSensor::SharedPtr msg)
+void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
 {
 	if(!paused_)
 	{
-        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, msg->value));
+        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, msg->pose.pose.position.z));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
         {

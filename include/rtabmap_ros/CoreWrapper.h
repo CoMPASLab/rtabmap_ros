@@ -28,6 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifndef COREWRAPPER_H_
 #define COREWRAPPER_H_
 
+#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <rtabmap_ros/visibility.h>
 #include <rclcpp/rclcpp.hpp>
 
@@ -164,7 +165,7 @@ private:
 	void fiducialDetectionsAsyncCallback(const fiducial_msgs::msgs::FiducialTransformArray::SharedPtr fiducialDetections);
 #endif
 	void imuAsyncCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
-    void absoluteDepthAsyncCallback(const rtabmap_ros::msg::EnvSensor::SharedPtr msg);
+    void absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 	void republishNodeDataCallback(const std_msgs::msg::Int32MultiArray::ConstSharedPtr msg);
 	void interOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const rtabmap_ros::msg::OdomInfo::ConstSharedPtr & msg2);
@@ -384,7 +385,7 @@ private:
 #endif
 	std::map<int, std::pair<geometry_msgs::msg::PoseWithCovarianceStamped, float> > tags_; // id, <pose, size>
 	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imuSub_;
-	rclcpp::Subscription<rtabmap_ros::msg::EnvSensor>::SharedPtr absoluteDepthSub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr absoluteDepthSub_;
 
 	std::map<double, rtabmap::Transform> imus_;
 	std::map<double, float> absoluteDepths_;
