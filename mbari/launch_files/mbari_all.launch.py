@@ -24,13 +24,10 @@ def generate_launch_description():
         get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
     )
 
-
     return LaunchDescription([
             DeclareLaunchArgument('use_sim_time', default_value='true'),
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
-            DeclareLaunchArgument('publish_tf_odom', default_value='false',  description=''),
-            DeclareLaunchArgument('odom_guess_frame_id', default_value='odom', description=''),
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),

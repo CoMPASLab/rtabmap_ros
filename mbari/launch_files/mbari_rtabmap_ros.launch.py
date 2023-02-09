@@ -223,7 +223,7 @@ def generate_launch_description():
         DeclareLaunchArgument('output',         default_value='screen',             description='Control node output (screen or log).'),
         DeclareLaunchArgument('trajectory_path', default_value='output_trajectory.csv', description='Where trajectory is saved (leave empty to disable saving).'),
         
-        DeclareLaunchArgument('approx_sync',  default_value='false',            description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
+        DeclareLaunchArgument('approx_sync',  default_value='true',            description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
         DeclareLaunchArgument('approx_sync_max_interval',  default_value='0.0', description='(sec) 0 means infinite interval duration (used with approx_sync=true)'),
 
         # Absolute depth topic
@@ -244,14 +244,14 @@ def generate_launch_description():
         DeclareLaunchArgument('icp_odometry',               default_value='false', description='Launch rtabmap icp odometry node.'),
         DeclareLaunchArgument('odom_topic',                 default_value='odom',  description='Odometry topic name.'),
         DeclareLaunchArgument('vo_frame_id',                default_value='odom'),
-        DeclareLaunchArgument('publish_tf_odom',            default_value='false',  description=''),
+        DeclareLaunchArgument('publish_tf_odom',            default_value='true',  description=''),
         DeclareLaunchArgument('odom_tf_angular_variance',   default_value='1.0',    description='If TF is used to get odometry, this is the default angular variance'),
         DeclareLaunchArgument('odom_tf_linear_variance',    default_value='1.0',   description='If TF is used to get odometry, this is the default linear variance'),
         # DeclareLaunchArgument('odom_tf_angular_variance',   default_value='0.0013',    description='If TF is used to get odometry, this is the default angular variance'),
         # DeclareLaunchArgument('odom_tf_linear_variance',    default_value='0.00013',   description='If TF is used to get odometry, this is the default linear variance'),
         DeclareLaunchArgument('odom_args',                  default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
         DeclareLaunchArgument('odom_sensor_sync',           default_value='false', description=''),
-        DeclareLaunchArgument('odom_guess_frame_id',        default_value='odom',      description=''),
+        DeclareLaunchArgument('odom_guess_frame_id',        default_value='ekf_odom',      description=''),
         DeclareLaunchArgument('odom_guess_min_translation', default_value='0.0',   description=''),
         DeclareLaunchArgument('odom_guess_min_rotation',    default_value='0.0',   description=''),
         
