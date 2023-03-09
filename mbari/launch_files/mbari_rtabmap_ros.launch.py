@@ -6,15 +6,12 @@
 import os
 
 from launch import LaunchDescription, Substitution, LaunchContext
-from launch.actions import DeclareLaunchArgument, SetEnvironmentVariable, LogInfo, OpaqueFunction, IncludeLaunchDescription
-from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration, ThisLaunchFileDir, PythonExpression
-from launch.conditions import IfCondition, UnlessCondition
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
+from launch.substitutions import LaunchConfiguration, PythonExpression
+from launch.conditions import IfCondition
 from launch_ros.actions import Node
-from launch_ros.actions import SetParameter
 from typing import Text
 from ament_index_python.packages import get_package_share_directory
-import math
 
 #Based on https://answers.ros.org/question/363763/ros2-how-best-to-conditionally-include-a-prefix-in-a-launchpy-file/
 class ConditionalText(Substitution):
@@ -53,24 +50,6 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
     
-        Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-            arguments=['0.4552', '0.46535', '-0.096', '-7.07032034e-01', '7.07181399e-01', '-3.32573011e-04', '-2.47479010e-04', 'base_link', 'stereo_camera/left' ],
-            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-            namespace=LaunchConfiguration('namespace')),
-
-        Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-            arguments=['0.4552', '0.445347184', '-0.096', '-7.06993096e-01', '7.07220211e-01', '-4.38673721e-04', '-3.79566676e-04', 'base_link', 'stereo_camera/right' ],
-            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-            namespace=LaunchConfiguration('namespace')),
-
-        Node(
-            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-            arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', 'base_link', 'depth_link' ],
-            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-            namespace=LaunchConfiguration('namespace')),
-
         # Stereo odometry
         Node(
             package='rtabmap_ros', executable='stereo_odometry', output="screen",
