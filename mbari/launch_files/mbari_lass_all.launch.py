@@ -9,7 +9,7 @@ from ament_index_python.packages import get_package_share_directory
 
 
 def generate_launch_description():
-    
+
     lcm_to_ros2_dir = get_package_share_directory('lass_lcm_to_ros2')
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
@@ -35,7 +35,18 @@ def generate_launch_description():
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
+            DeclareLaunchArgument('imu_topic', default_value='/converted/kearfott_imu'),
 
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+            ),
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+            ),
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
                 arguments=['0.4552', '0.46535', '-0.096', '-7.07032034e-01', '7.07181399e-01', '-3.32573011e-04', '-2.47479010e-04', 'base_link', 'stereo_camera/left' ],
