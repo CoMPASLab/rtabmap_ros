@@ -206,7 +206,7 @@ def generate_launch_description():
         DeclareLaunchArgument('approx_sync_max_interval',  default_value='0.0', description='(sec) 0 means infinite interval duration (used with approx_sync=true)'),
 
         # Absolute depth topic
-        DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
+        DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),
         DeclareLaunchArgument('qos_absolute_depth', default_value='2', description='QoS used exclusively for absolute depth data: 0=system default, 1=Reliable, 2=Best Effort.'),
         
         # Stereo related topics

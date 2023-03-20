@@ -36,7 +36,10 @@ def generate_launch_description():
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
-            DeclareLaunchArgument('imu_topic', default_value='/converted/vectornav_imu'),
+            DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
+            DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
+            DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
+            DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
 
             # Vectornav IMU
             Node(
