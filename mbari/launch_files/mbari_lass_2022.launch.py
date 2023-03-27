@@ -45,20 +45,22 @@ def generate_launch_description():
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
                 arguments=['0.3025', '0.0046', '-0.0549', '0', '0', '0', '1', 'base_link', 'imu_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
             ),
 
             # DVL
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
                 arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth
+            # Depth sensor
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', 'base_link', 'depth_link' ],
+                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', '1', 'base_link', 'depth_link' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
