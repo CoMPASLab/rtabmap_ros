@@ -24,9 +24,9 @@ from launch_ros.actions import Node
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
-        DeclareLaunchArgument('imu_topic', default_value='/converted/imu'),
-        DeclareLaunchArgument('twist_topic', default_value='/converted/twist'),
-        DeclareLaunchArgument('depth_topic', default_value='/converted/depth'),
+        DeclareLaunchArgument('ekf_input_imu_topic', default_value='/imu'),
+        DeclareLaunchArgument('ekf_input_twist_topic', default_value='/twist'),
+        DeclareLaunchArgument('ekf_input_odom_topic', default_value='/odom'),
 
         Node(
             package='robot_localization',
@@ -38,9 +38,9 @@ def generate_launch_description():
                                      'ocean_imaging.yaml'),
                         {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             remappings=[
-                ("/converted/imu",   LaunchConfiguration('imu_topic')),
-                ("/converted/twist", LaunchConfiguration('twist_topic')),
-                ("/converted/depth", LaunchConfiguration('depth_topic')),
+                ("/imu",   LaunchConfiguration('ekf_input_imu_topic')),
+                ("/twist", LaunchConfiguration('ekf_input_twist_topic')),
+                ("/odom", LaunchConfiguration('ekf_input_odom_topic')),
             ]
         ),
 ])

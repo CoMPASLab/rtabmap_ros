@@ -36,39 +36,45 @@ def generate_launch_description():
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
-            DeclareLaunchArgument('imu_topic', default_value='/converted/kearfott_imu'),
+            DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
+            DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
+            DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
+            DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
 
             # Kearfott IMU
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
                 arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
             ),
 
             # DVL
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
                 arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}]
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth
+            # Depth sensor
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', 'base_link', 'depth_link' ],
+                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', '1', 'base_link', 'depth_link' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')),
+                namespace=LaunchConfiguration('namespace')
+            ),
 
             # PROSILICA 2020
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.4552', '0.46535', '-0.096', '-7.07032034e-01', '7.07181399e-01', '-3.32573011e-04', '-2.47479010e-04', 'base_link', 'stereo_camera/left' ],
+                arguments=['0.4552', '0.46535', '-0.096', '9.99999908e-01', '-1.05617107e-04', '6.01705448e-05', '4.10158718e-04', 'base_link', 'stereo_camera/left' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-                arguments=['0.4552', '0.445347184', '-0.096', '-7.06993096e-01', '7.07220211e-01', '-4.38673721e-04', '-3.79566676e-04', 'base_link', 'stereo_camera/right' ],
+                arguments=['0.4552', '0.445362646', '-0.096', '9.99999819e-01', '-1.60594499e-04', '4.17949923e-05', '5.78583333e-04', 'base_link', 'stereo_camera/right' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
