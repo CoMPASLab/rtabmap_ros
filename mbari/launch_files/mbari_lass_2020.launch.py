@@ -43,15 +43,10 @@ def generate_launch_description():
             DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
             DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
             DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
+
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
 
-            # Kearfott IMU
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
+            # No IMU because Kearfott INS odom's twist angulars are used instead
 
             # DVL
             Node(
@@ -61,10 +56,10 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth sensor
+            # Depth from Kearfott INS
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', '1', 'base_link', 'depth_link' ],
+                arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link', 'depth_link' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
