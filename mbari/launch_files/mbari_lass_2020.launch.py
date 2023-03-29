@@ -67,13 +67,13 @@ def generate_launch_description():
             # PROSILICA 2020
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.4552', '0.46535', '-0.096', '9.99999908e-01', '-1.05617107e-04', '6.01705448e-05', '4.10158718e-04', 'base_link', 'stereo_camera/left' ],
+                arguments=['-0.46535', '0.4552', '-0.096', '9.99999908e-01', '1.05617107e-04', '-6.01705448e-05', '4.10158718e-04', 'base_link', 'stereo_camera/left' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-                arguments=['0.4552', '0.445362646', '-0.096', '9.99999819e-01', '-1.60594499e-04', '4.17949923e-05', '5.78583333e-04', 'base_link', 'stereo_camera/right' ],
+                arguments=['-0.445362646', '0.4552', '-0.096', '9.99999819e-01', '1.60594499e-04', '-4.17949923e-05', '5.78583333e-04', 'base_link', 'stereo_camera/right' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
