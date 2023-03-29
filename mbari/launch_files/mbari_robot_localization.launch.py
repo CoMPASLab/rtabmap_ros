@@ -22,20 +22,23 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
+
+    default_config_path = os.path.join(get_package_share_directory("rtabmap_ros"),
+                                'launch', 'robot_localization_params', 'oi_2020.yaml')
+
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),
         DeclareLaunchArgument('ekf_input_imu_topic', default_value='/imu'),
         DeclareLaunchArgument('ekf_input_twist_topic', default_value='/twist'),
         DeclareLaunchArgument('ekf_input_odom_topic', default_value='/odom'),
+        DeclareLaunchArgument('ekf_config_path', default_value=default_config_path),
 
         Node(
             package='robot_localization',
             executable='ekf_node',
             name='ekf_filter_node',
             output='screen',
-            parameters=[os.path.join(get_package_share_directory("rtabmap_ros"),
-                                     'launch', 'robot_localization_params',
-                                     'ocean_imaging.yaml'),
+            parameters=[LaunchConfiguration('ekf_config_path'),
                         {"use_sim_time": LaunchConfiguration('use_sim_time')}],
             remappings=[
                 ("/imu",   LaunchConfiguration('ekf_input_imu_topic')),

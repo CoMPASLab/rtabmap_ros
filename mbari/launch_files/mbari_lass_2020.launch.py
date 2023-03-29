@@ -25,6 +25,9 @@ def generate_launch_description():
         get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
     )
 
+    config_path = os.path.join(get_package_share_directory("rtabmap_ros"), 'launch',
+                               'robot_localization_params', 'oi_2020.yaml')
+
     return LaunchDescription([
             DeclareLaunchArgument('use_sim_time', default_value='true'),
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
@@ -36,6 +39,7 @@ def generate_launch_description():
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
+            DeclareLaunchArgument('ekf_config_path', default_value=config_path),
             DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
             DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
             DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
