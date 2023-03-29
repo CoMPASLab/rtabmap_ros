@@ -34,7 +34,7 @@ def generate_launch_description():
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
+            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 8 --Vis/FeatureType 8', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
@@ -49,7 +49,7 @@ def generate_launch_description():
             # Vectornav IMU
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-                arguments=['0.3025', '0.0046', '-0.0549', '0', '0', '0', '1', 'base_link', 'imu_link'],
+                arguments=['-0.0046', '0.3025', '-0.0549', '0', '0', '0', '1', 'base_link', 'imu_link'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -62,10 +62,10 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth sensor
+            # Depth from Kearfott INS
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', '1', 'base_link', 'depth_link' ],
+                arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link', 'depth_link' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
