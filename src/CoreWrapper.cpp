@@ -1949,16 +1949,11 @@ void CoreWrapper::process(
                 }
             }
             
-            rtabmap::Transform localTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
-            rtabmap::Transform odomTransform = getTransform(odomFrameId_, frameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+            rtabmap::Transform baseToDepthTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
 
-            if(!localTransform.isNull())
+            if(!baseToDepthTransform.isNull())
             {
-                Transform depth = rtabmap::Transform::getIdentity();
-                depth.z() = depthValue;
-                float depthRotated = (localTransform * depth).z() + (odomTransform.rotation() * localTransform).z();
-                data.setAbsoluteDepth(depthRotated);
-                RCLCPP_INFO(get_logger(), "Absolute depth %f transformed to %f at %lf", depthValue, depthRotated, depthTimestamp);
+                data.setAbsoluteDepth({depthValue, baseToDepthTransform});
                 absoluteDepths_ = newAbsoluteDepths;
             }
         }
