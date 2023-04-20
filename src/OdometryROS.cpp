@@ -70,6 +70,7 @@ OdometryROS::OdometryROS(const std::string & name, const rclcpp::NodeOptions & o
 	groundTruthFrameId_(""),
 	groundTruthBaseFrameId_(""),
 	guessFrameId_(""),
+    guessRotationOnly_(false),
 	guessMinTranslation_(0.0),
 	guessMinRotation_(0.0),
 	guessMinTime_(0.0),
@@ -121,9 +122,12 @@ OdometryROS::OdometryROS(const std::string & name, const rclcpp::NodeOptions & o
 	publishNullWhenLost_ = this->declare_parameter("publish_null_when_lost", publishNullWhenLost_);
 
 	guessFrameId_ = this->declare_parameter("guess_frame_id", guessFrameId_);
+    guessRotationOnly_ = this->declare_parameter("guess_rotation_only", guessRotationOnly_);
 	guessMinTranslation_ = this->declare_parameter("guess_min_translation", guessMinTranslation_);
 	guessMinRotation_ = this->declare_parameter("guess_min_rotation", guessMinRotation_);
 	guessMinTime_ = this->declare_parameter("guess_min_time", guessMinTime_);
+
+
 
 	expectedUpdateRate_ = this->declare_parameter("expected_update_rate", expectedUpdateRate_);
 	maxUpdateRate_ = this->declare_parameter("max_update_rate", maxUpdateRate_);
@@ -148,6 +152,7 @@ OdometryROS::OdometryROS(const std::string & name, const rclcpp::NodeOptions & o
 	RCLCPP_INFO(this->get_logger(), "Odometry: config_path            = %s", configPath_.c_str());
 	RCLCPP_INFO(this->get_logger(), "Odometry: publish_null_when_lost = %s", publishNullWhenLost_?"true":"false");
 	RCLCPP_INFO(this->get_logger(), "Odometry: guess_frame_id         = %s", guessFrameId_.c_str());
+    RCLCPP_INFO(this->get_logger(), "Odometry: guess_rotation_only = %s", guessRotationOnly_?"true":"false");
 	RCLCPP_INFO(this->get_logger(), "Odometry: guess_min_translation  = %f", guessMinTranslation_);
 	RCLCPP_INFO(this->get_logger(), "Odometry: guess_min_rotation     = %f", guessMinRotation_);
 	RCLCPP_INFO(this->get_logger(), "Odometry: guess_min_time         = %f", guessMinTime_);
@@ -237,7 +242,7 @@ void OdometryROS::init(bool stereoParams, bool visParams, bool icpParams)
 	for(rtabmap::ParametersMap::iterator iter=parameters_.begin(); iter!=parameters_.end(); ++iter)
 	{
 		rclcpp::Parameter parameter;
-		std::string vStr = this->declare_parameter(iter->first, iter->second); 
+		std::string vStr = this->declare_parameter(iter->first, iter->second);
 	 	if(vStr.compare(iter->second)!=0)
 		{
 			RCLCPP_INFO(this->get_logger(), "Setting odometry parameter \"%s\"=\"%s\"", iter->first.c_str(), vStr.c_str());
@@ -255,7 +260,7 @@ void OdometryROS::init(bool stereoParams, bool visParams, bool icpParams)
 	std::vector<std::string> argList;
 	for(unsigned int i=0; i<tmpList.size(); ++i)
 	{
-	    // Issue with ros2 launch files in which we cannot pass a 
+	    // Issue with ros2 launch files in which we cannot pass a
 	    // list of strings as argument (they will appear in same string)
 	    std::list<std::string> v = uSplit(tmpList[i]);
 	    for(std::list<std::string>::iterator iter=v.begin(); iter!=v.end(); ++iter)
@@ -263,7 +268,7 @@ void OdometryROS::init(bool stereoParams, bool visParams, bool icpParams)
 	        argList.push_back(*iter);
 	    }
 	}
-	
+
 	char ** argv = new char*[argList.size()];
 	for(unsigned int i=0; i<argList.size(); ++i)
 	{
@@ -352,7 +357,9 @@ void OdometryROS::init(bool stereoParams, bool visParams, bool icpParams)
 		this->get_parameter_or("queue_size", queueSize, queueSize);
 		int qosImu = this->declare_parameter("qos_imu", (int)qos_);
 		imuSub_ = create_subscription<sensor_msgs::msg::Imu>("imu", rclcpp::QoS(queueSize*5).reliability((rmw_qos_reliability_policy_t)qosImu), std::bind(&OdometryROS::callbackIMU, this, std::placeholders::_1));
-		RCLCPP_INFO(this->get_logger(), "odometry: Subscribing to IMU topic %s", imuSub_->get_topic_name());
+		odomSub_ = create_subscription<nav_msgs::msg::Odometry>("odom_in", rclcpp::QoS(queueSize*5).reliability((rmw_qos_reliability_policy_t)qosImu), std::bind(&OdometryROS::callbackOdom, this, std::placeholders::_1));
+        RCLCPP_INFO(this->get_logger(), "odometry: Subscribing to IMU topic %s", imuSub_->get_topic_name());
+        RCLCPP_INFO(this->get_logger(), "odometry: Subscribing to Odom input topic %s", odomSub_->get_topic_name());
 		RCLCPP_INFO(this->get_logger(), "odometry: qos_imu = %d", qosImu);
 	}
 
@@ -385,7 +392,7 @@ void OdometryROS::startWarningThread(const std::string & subscribedTopicsMsg, bo
 
 void OdometryROS::callbackIMU(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
-	if(!this->isPaused())
+	if(!this->isPaused() && !this->guessRotationOnly_)
 	{
 		double stamp = timestampFromROS(msg->header.stamp);
 		rtabmap::Transform localTransform = rtabmap::Transform::getIdentity();
@@ -406,6 +413,50 @@ void OdometryROS::callbackIMU(const sensor_msgs::msg::Imu::SharedPtr msg)
 				cv::Mat(3,3,CV_64FC1,(void*)msg->angular_velocity_covariance.data()).clone(),
 				cv::Vec3d(msg->linear_acceleration.x, msg->linear_acceleration.y, msg->linear_acceleration.z),
 				cv::Mat(3,3,CV_64FC1,(void*)msg->linear_acceleration_covariance.data()).clone(),
+				localTransform);
+
+		imus_.insert(std::make_pair(stamp, imu));
+		//RCLCPP_WARN(get_logger(), "Received imu: %f", stamp);
+
+		if(bufferedData_.first.isValid() && stamp > bufferedData_.first.stamp())
+		{
+			SensorData data = bufferedData_.first;
+			bufferedData_.first = SensorData();
+			processData(data, bufferedData_.second);
+		}
+
+		if(imus_.size() > 1000)
+		{
+			imus_.erase(imus_.begin());
+		}
+	}
+}
+
+void OdometryROS::callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+	if(!this->isPaused() && this->guessRotationOnly_)
+	{
+		double stamp = timestampFromROS(msg->header.stamp);
+		rtabmap::Transform localTransform = rtabmap::Transform::getIdentity();
+		if(this->frameId().compare(msg->header.frame_id) != 0)
+		{
+			localTransform = getTransform(this->frameId(), msg->header.frame_id, msg->header.stamp, *tfBuffer_, waitForTransform_);
+		}
+		if(localTransform.isNull())
+		{
+			RCLCPP_ERROR(this->get_logger(), "Could not transform ODOM msg from frame \"%s\" to frame \"%s\", TF not available at time %f",
+					msg->header.frame_id.c_str(), this->frameId().c_str(), stamp);
+			return;
+		}
+        cv::Mat xyz_cov = cv::Mat(3,3,CV_64FC1,cv::Vec<double, 9>(msg->pose.covariance[3], 0, 0, 0, msg->pose.covariance[4], 0, 0, 0, msg->pose.covariance[5]));
+        cv::Mat rpy_cov = cv::Mat(3,3,CV_64FC1,cv::Vec<double, 9>(msg->twist.covariance[3], 0, 0, 0, msg->twist.covariance[4], 0, 0, 0, msg->twist.covariance[5]));
+        cv::Mat lin_cov = cv::Mat(3,3,CV_64FC1,cv::Vec<double, 9>(msg->pose.covariance[0], 0, 0, 0, msg->pose.covariance[1], 0, 0, 0, msg->pose.covariance[2]));
+		IMU imu(cv::Vec4d(msg->pose.pose.orientation.x, msg->pose.pose.orientation.y, msg->pose.pose.orientation.z, msg->pose.pose.orientation.w),
+				xyz_cov.clone(),
+				cv::Vec3d(msg->twist.twist.angular.x, msg->twist.twist.angular.y, msg->twist.twist.angular.z),
+				rpy_cov.clone(),
+				cv::Vec3d(msg->twist.twist.linear.x, msg->twist.twist.linear.y, msg->twist.twist.linear.z),
+				lin_cov.clone(),
 				localTransform);
 
 		imus_.insert(std::make_pair(stamp, imu));
