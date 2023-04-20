@@ -34,8 +34,7 @@ def generate_launch_description():
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-#            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7 --Odom/UseImuRotationDirect true', description='Args'),
-            # DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
+            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='--Odom/UseImuRotationDirect true', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
 
             # Rotation Only
