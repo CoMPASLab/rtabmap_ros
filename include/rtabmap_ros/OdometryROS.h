@@ -96,6 +96,7 @@ private:
 	virtual void onOdomInit() {}
 
 	void callbackIMU(const sensor_msgs::msg::Imu::SharedPtr msg);
+    void callbackOdom(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void reset(const rtabmap::Transform & pose = rtabmap::Transform::getIdentity());
 
 private:
@@ -116,6 +117,7 @@ private:
 	bool publishTf_;
 	double waitForTransform_;
 	bool publishNullWhenLost_;
+    bool guessRotationOnly_;
 	rmw_qos_reliability_policy_t qos_;
 	rtabmap::ParametersMap parameters_;
 
@@ -140,6 +142,7 @@ private:
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer_;
 	std::shared_ptr<tf2_ros::TransformListener> tfListener_;
 	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imuSub_;
+    rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odomSub_;
 
 	bool paused_;
 	int resetCountdown_;

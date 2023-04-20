@@ -25,7 +25,7 @@ class ConditionalText(Substitution):
             return self.text_if
         else:
             return self.text_else
-            
+
 class ConditionalBool(Substitution):
     def __init__(self, text_if, text_else, condition):
         self.text_if = text_if
@@ -37,19 +37,19 @@ class ConditionalBool(Substitution):
             return self.text_if
         else:
             return self.text_else
-            
-def launch_setup(context, *args, **kwargs):      
+
+def launch_setup(context, *args, **kwargs):
 
     return [
         DeclareLaunchArgument('args',  default_value=LaunchConfiguration('rtabmap_args'), description='Can be used to pass RTAB-Map\'s parameters or other flags like --udebug and --delete_db_on_start/-d'),
         DeclareLaunchArgument('qos_image',       default_value=LaunchConfiguration('qos'), description='Specific QoS used for image input data: 0=system default, 1=Reliable, 2=Best Effort.'),
         DeclareLaunchArgument('qos_camera_info', default_value=LaunchConfiguration('qos'), description='Specific QoS used for camera info input data: 0=system default, 1=Reliable, 2=Best Effort.'),
         DeclareLaunchArgument('qos_odom',        default_value=LaunchConfiguration('qos'), description='Specific QoS used for odometry input data: 0=system default, 1=Reliable, 2=Best Effort.'),
-        
+
         #These arguments should not be modified directly, see referred topics without "_relay" suffix above
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
-    
+
         # Stereo odometry
         Node(
             package='rtabmap_ros', executable='stereo_odometry', output="screen",
@@ -57,6 +57,7 @@ def launch_setup(context, *args, **kwargs):
                 "frame_id": LaunchConfiguration('frame_id'),
                 "odom_frame_id": LaunchConfiguration('vo_frame_id'),
                 "publish_tf": LaunchConfiguration('publish_tf_odom'),
+                "guess_rotation_only": LaunchConfiguration('odom_use_rotation_only'),
                 "wait_for_transform": LaunchConfiguration('wait_for_transform'),
                 "approx_sync": LaunchConfiguration('approx_sync'),
                 "approx_sync_max_interval": LaunchConfiguration('approx_sync_max_interval'),
@@ -67,7 +68,9 @@ def launch_setup(context, *args, **kwargs):
                 "guess_frame_id": LaunchConfiguration('odom_guess_frame_id').perform(context),
                 "guess_min_translation": LaunchConfiguration('odom_guess_min_translation'),
                 "guess_min_rotation": LaunchConfiguration('odom_guess_min_rotation'),
-                "use_sim_time": LaunchConfiguration('use_sim_time')
+                "use_sim_time": LaunchConfiguration('use_sim_time'),
+                "odom_in": LaunchConfiguration('odom_in')
+
             }],
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -132,7 +135,7 @@ def launch_setup(context, *args, **kwargs):
                 "qos_odom": LaunchConfiguration('qos_odom'),
                 "qos_camera_info": LaunchConfiguration('qos_camera_info'),
                 "qos_absolute_depth": LaunchConfiguration('qos_absolute_depth'),
-                "use_sim_time": LaunchConfiguration('use_sim_time')
+                "use_sim_time": LaunchConfiguration('use_sim_time'),
             }],
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -167,13 +170,13 @@ def launch_setup(context, *args, **kwargs):
         ]
 
 def generate_launch_description():
-    
+
     config_rviz = os.path.join(
         get_package_share_directory('rtabmap_ros'), 'launch', 'config', 'rgbd.rviz'
     )
-    
+
     return LaunchDescription([
-        
+
         # Arguments
         DeclareLaunchArgument('stereo', default_value='true', description='Use stereo input instead of RGB-D.'),
 
@@ -201,23 +204,23 @@ def generate_launch_description():
         DeclareLaunchArgument('launch_prefix',  default_value='',                   description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
         DeclareLaunchArgument('output',         default_value='screen',             description='Control node output (screen or log).'),
         DeclareLaunchArgument('trajectory_path', default_value='output_trajectory.csv', description='Where trajectory is saved (leave empty to disable saving).'),
-        
+
         DeclareLaunchArgument('approx_sync',  default_value='true',            description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
         DeclareLaunchArgument('approx_sync_max_interval',  default_value='0.0', description='(sec) 0 means infinite interval duration (used with approx_sync=true)'),
 
         # Absolute depth topic
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),
         DeclareLaunchArgument('qos_absolute_depth', default_value='2', description='QoS used exclusively for absolute depth data: 0=system default, 1=Reliable, 2=Best Effort.'),
-        
+
         # Stereo related topics
         DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
         DeclareLaunchArgument('left_image_topic',        default_value=[LaunchConfiguration('stereo_namespace'), '/left/image_rect_color'], description=''),
         DeclareLaunchArgument('right_image_topic',       default_value=[LaunchConfiguration('stereo_namespace'), '/right/image_rect'], description='Use grayscale image for efficiency'),
         DeclareLaunchArgument('left_camera_info_topic',  default_value=[LaunchConfiguration('stereo_namespace'), '/left/camera_info'], description=''),
         DeclareLaunchArgument('right_camera_info_topic', default_value=[LaunchConfiguration('stereo_namespace'), '/right/camera_info'], description=''),
-        
+
         DeclareLaunchArgument('compressed',            default_value='false', description='If you want to subscribe to compressed image topics'),
-       
+
         # Odometry
         DeclareLaunchArgument('visual_odometry',            default_value='true',  description='Launch rtabmap visual odometry node.'),
         DeclareLaunchArgument('icp_odometry',               default_value='false', description='Launch rtabmap icp odometry node.'),
@@ -233,11 +236,11 @@ def generate_launch_description():
         DeclareLaunchArgument('odom_guess_frame_id',        default_value='ekf_odom',      description=''),
         DeclareLaunchArgument('odom_guess_min_translation', default_value='0.0',   description=''),
         DeclareLaunchArgument('odom_guess_min_rotation',    default_value='0.0',   description=''),
-        
+        DeclareLaunchArgument('odom_use_rotation_only', default_value='false',     description=''),
+        DeclareLaunchArgument('odom_in', default_value='/odometry/filtered/disabled',     description=''),
+
         # imu
-        DeclareLaunchArgument('imu_topic',        default_value='/imu/data', description='Used with VIO approaches and for SLAM graph optimization (gravity constraints).'),
+        DeclareLaunchArgument('imu_topic',        default_value='/imu/data/', description='Used with VIO approaches and for SLAM graph optimization (gravity constraints).'),
         DeclareLaunchArgument('wait_imu_to_init', default_value='false',     description=''),
-        OpaqueFunction(function=launch_setup)
+        OpaqueFunction(function=launch_setup),
     ])
-
-

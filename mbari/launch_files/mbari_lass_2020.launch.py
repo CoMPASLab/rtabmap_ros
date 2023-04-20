@@ -35,7 +35,13 @@ def generate_launch_description():
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
-            DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
+            DeclareLaunchArgument('odom_args', default_value='--Odom/UseImuRotationDirect true', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
+
+            # Rotation Only
+            DeclareLaunchArgument('odom_use_rotation_only', default_value='true',     description=''),
+            DeclareLaunchArgument('odom_in', default_value='/odometry/filtered',     description=''),
+            DeclareLaunchArgument('imu_topic',        default_value='/imu/data/disabled', description='Used with VIO approaches and for SLAM graph optimization (gravity constraints).'),
+
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
             DeclareLaunchArgument('ekf_config_path', default_value=config_path),
@@ -93,7 +99,7 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            lcm_to_ros2_launch,
+            # lcm_to_ros2_launch,
             robot_localization_launch,
             stereo_proc_launch,
             rtabmap_ros_launch
