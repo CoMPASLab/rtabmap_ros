@@ -178,7 +178,7 @@ def generate_launch_description():
         DeclareLaunchArgument('stereo', default_value='true', description='Use stereo input instead of RGB-D.'),
 
         DeclareLaunchArgument('localization', default_value='false', description='Launch in localization mode.'),
-        DeclareLaunchArgument('rtabmapviz',   default_value='true',  description='Launch RTAB-Map UI (optional).'),
+        DeclareLaunchArgument('rtabmapviz',   default_value='false,  description='Launch RTAB-Map UI (optional).'),
         DeclareLaunchArgument('rviz',         default_value='false', description='Launch RVIZ (optional).'),
         DeclareLaunchArgument('use_sim_time', default_value='true', description='Use simulation (Gazebo) clock if true'),
 
