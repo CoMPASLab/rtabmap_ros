@@ -1,0 +1,36 @@
+%YAML:1.0
+---
+camera_name: rtabmap_calib_left
+image_width: 1032
+image_height: 772
+rate_hz: 0.3333333
+camera_matrix:
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 729.94194667, 0.0, 491.13774934,
+           0.0, 728.82024193, 393.65708304,
+           0.0, 0.0, 1.0 ]
+distortion_coefficients:
+   rows: 1
+   cols: 8
+   dt: d
+   data: [ -5.09248342e+00, 1.05562318e+01,
+           -2.79630484e-04, 8.49338778e-04,
+            3.62607308e+00, -4.82811554e+00,
+            9.13386658e+00, 6.83249604e+00 ]
+distortion_model: rational_polynomial
+rectification_matrix:
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 0.9982151, 0.0414473, -0.04299694,
+          -0.04158949, 0.99913186, -0.00241757,
+           0.04285941, 0.00420148, 0.99907228 ]
+projection_matrix:
+   rows: 3
+   cols: 4
+   dt: d
+   data: [ 727.44358305, 0.0, 550.70269775, 0.0,
+           0.0, 727.44358305, 387.18166733, 0.0,
+           0.0, 0.0, 1.0, 0.0 ]
