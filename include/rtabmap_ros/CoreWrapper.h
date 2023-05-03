@@ -29,6 +29,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define COREWRAPPER_H_
 
 #include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
+#include <nav_msgs/msg/detail/odometry__struct.hpp>
 #include <rtabmap_ros/visibility.h>
 #include <rclcpp/rclcpp.hpp>
 
@@ -171,6 +172,8 @@ private:
 	void interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const rtabmap_ros::msg::OdomInfo::ConstSharedPtr & msg2);
 
 	void initialPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+	void additionalGraphLinkAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+	void additionalGraphLinkOdometryAsyncCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
 	void goalCommonCallback(int id,
 			const std::string & label,
@@ -386,9 +389,12 @@ private:
 	std::map<int, std::pair<geometry_msgs::msg::PoseWithCovarianceStamped, float> > tags_; // id, <pose, size>
 	rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imuSub_;
 	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr absoluteDepthSub_;
+	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr additionalGraphLinkSub_;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr additionalGraphLinkOdometrySub_;
 
 	std::map<double, rtabmap::Transform> imus_;
 	std::map<double, float> absoluteDepths_;
+    std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> additionalGraphLinks_;
 
 	std::string imuFrameId_;
 	std::string depthFrameId_;
