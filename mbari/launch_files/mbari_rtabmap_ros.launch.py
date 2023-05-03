@@ -113,6 +113,7 @@ def launch_setup(context, *args, **kwargs):
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
                 ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
+                ("additional_graph_links_odometry", LaunchConfiguration('additional_graph_link_odometry_topic')),
                 ("odom", LaunchConfiguration('odom_topic'))],
             arguments=[LaunchConfiguration("args")],
             prefix=LaunchConfiguration('launch_prefix'),
@@ -237,7 +238,11 @@ def generate_launch_description():
         # imu
         DeclareLaunchArgument('imu_topic',        default_value='/imu/data', description='Used with VIO approaches and for SLAM graph optimization (gravity constraints).'),
         DeclareLaunchArgument('wait_imu_to_init', default_value='false',     description=''),
-        OpaqueFunction(function=launch_setup)
+
+        # Additional graph links
+        DeclareLaunchArgument('additional_graph_link_odometry_topic', default_value='additional_graph_links_odometry'),
+
+        OpaqueFunction(function=launch_setup),
     ])
 
 
