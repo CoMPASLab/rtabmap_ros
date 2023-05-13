@@ -51,7 +51,7 @@ def generate_launch_description():
             # DVL
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
-                arguments=['0', '0', '0', '1', '0', '0', '0', 'base_link_frd', 'dvl_link_frd'],
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'dvl_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -59,16 +59,8 @@ def generate_launch_description():
             # Kearfott IMU
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-                arguments=['0', '0', '0', '1', '0', '0', '0', 'base_link_frd', 'imu_link_frd'],
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'imu_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
-
-            # Depth from Kearfott INS
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd' ],
-                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
 

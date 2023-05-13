@@ -1961,9 +1961,9 @@ void CoreWrapper::process(
 
             if(!localTransform.isNull())
             {
-                RCLCPP_INFO(get_logger(), "Using absolute depth %f at %lf ", depthValue, depthTimestamp);
                 float depth_rotated = (odom.rotation() * localTransform).z();
-                data.setAbsoluteDepth(depthValue + depth_rotated);
+
+                RCLCPP_INFO(get_logger(), "Using absolute depth %f at %lf in local frame ", depthValue + depth_rotated, depthTimestamp);
                 absoluteDepths_ = newAbsoluteDepths;
             }
         }
