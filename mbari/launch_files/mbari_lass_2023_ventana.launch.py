@@ -45,6 +45,9 @@ def generate_launch_description():
             DeclareLaunchArgument('ekf_input_depth_topic', default_value='/converted/depth'),
 
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
+            # DeclareLaunchArgument('odom_topic', default_value='/odometry/filtered', description=''),
+            DeclareLaunchArgument('qos_odom', default_value='1', description=''),
+            DeclareLaunchArgument('odom_guess_frame_id', default_value='ekf_odom', description=''),
 
             # No IMU because Kearfott INS odom's twist angulars are used instead
 
@@ -60,6 +63,14 @@ def generate_launch_description():
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
                 arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'imu_link_frd'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Kearfott INS
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_ins_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'ins_odom_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
