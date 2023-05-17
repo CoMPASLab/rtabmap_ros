@@ -130,7 +130,6 @@ OdometryROS::OdometryROS(const std::string & name, const rclcpp::NodeOptions & o
 
 	waitIMUToinit_ = this->declare_parameter("wait_imu_to_init", waitIMUToinit_);
 
-
 	if(publishTf_ && !guessFrameId_.empty() && guessFrameId_.compare(odomFrameId_) == 0)
 	{
 		RCLCPP_WARN(this->get_logger(), "\"publish_tf\" and \"guess_frame_id\" cannot be used "

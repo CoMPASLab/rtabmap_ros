@@ -10,7 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    lcm_to_ros2_dir = get_package_share_directory('lass_lcm_to_ros2')
+    lcm_to_ros2_dir = get_package_share_directory('lass_old_lcm_to_ros2')
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers.launch.py'))
@@ -25,6 +25,9 @@ def generate_launch_description():
         get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
     )
 
+    config_path = os.path.join(get_package_share_directory("rtabmap_ros"), 'launch',
+                               'robot_localization_params', 'oi_2020.yaml')
+
     return LaunchDescription([
             DeclareLaunchArgument('use_sim_time', default_value='true'),
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
@@ -33,34 +36,34 @@ def generate_launch_description():
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
-            DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth',  description='Absolute depth topic name.'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
+            DeclareLaunchArgument('ekf_config_path', default_value=config_path),
             DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
             DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
             DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
+
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
 
-            # Kearfott IMU
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'imu_link'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
+            DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
+            DeclareLaunchArgument('covariance_factor', default_value='1.0'),
+            DeclareLaunchArgument('output_relative_poses', default_value='True'),
+
+
+            # No IMU because Kearfott INS odom's twist angulars are used instead
 
             # DVL
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link', 'dvl_link'],
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'dvl_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth sensor
+            # Depth from Kearfott INS
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.1356', '0.1994', '-0.0697', '0', '0', '0', '1', 'base_link', 'depth_link' ],
+                arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -68,14 +71,39 @@ def generate_launch_description():
             # PROSILICA 2020
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.4552', '0.46535', '-0.096', '9.99999908e-01', '-1.05617107e-04', '6.01705448e-05', '4.10158718e-04', 'base_link', 'stereo_camera/left' ],
+                arguments=['0.4552', '-0.46535', '0.096', '3.21355726e-05', '1.17229573e-04', '7.06816690e-01', '7.07396742e-01', 'base_link_frd', 'stereo_camera_left_frd' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-                arguments=['0.4552', '0.445362646', '-0.096', '9.99999819e-01', '-1.60594499e-04', '4.17949923e-05', '5.78583333e-04', 'base_link', 'stereo_camera/right' ],
+                arguments=['0.4552', '-0.445347184', '0.096', '8.40039367e-05', '1.43110982e-04', '7.06697533e-01', '7.07515773e-01', 'base_link_frd', 'stereo_camera_right_frd' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
+                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd' ],
+                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # NED to ENU
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='world_enu_to_ned_link_publisher',
+                arguments=['0.0', '0.0', '0.0', '0.70710678', '0.70710678', '0', '0', 'world', 'world_ned' ],
+                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Odometry filter
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                parameters=[{"covariance_factor": LaunchConfiguration('covariance_factor')},
+                            {"output_relative_poses": LaunchConfiguration('output_relative_poses')}],
+                remappings=[("/pose/filtered", LaunchConfiguration('odometry_filter_output_topic'))],
                 namespace=LaunchConfiguration('namespace')
             ),
 

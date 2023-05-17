@@ -26,9 +26,15 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
 #include "rtabmap_ros/CoreWrapper.h"
+#include "rtabmap/core/ArbitraryPoseConstraint.h"
+#include "rtabmap/core/Transform.h"
 
 #include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
+#include <nav_msgs/msg/detail/odometry__struct.hpp>
+#include <std_msgs/msg/detail/header__struct.hpp>
 #include <stdio.h>
+#include <tf2/convert.h>
+#include <tf2_eigen/tf2_eigen.h>
 #include <thread>
 #include <rclcpp/rclcpp.hpp>
 
@@ -255,6 +261,9 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	localGridGround_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_grid_ground", 1);
 	localizationPosePub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("localization_pose", 1);
 	initialPoseSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("initialpose", 5, std::bind(&CoreWrapper::initialPoseCallback, this, std::placeholders::_1));
+
+	additionalGraphLinkSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("additional_graph_links", 10, std::bind(&CoreWrapper::additionalGraphLinkAsyncCallback, this, std::placeholders::_1));
+	additionalGraphLinkOdometrySub_ = this->create_subscription<nav_msgs::msg::Odometry>("additional_graph_links_odometry", 10, std::bind(&CoreWrapper::additionalGraphLinkOdometryAsyncCallback, this, std::placeholders::_1));
 
 	// planning topics
 	goalSub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal", 5, std::bind(&CoreWrapper::goalCallback, this, std::placeholders::_1));
@@ -1948,24 +1957,43 @@ void CoreWrapper::process(
                     depthValue = depth.second;
                 }
             }
-            
-            rtabmap::Transform localTransform;
-            if(frameId_.compare(depthFrameId_) != 0)
-            {
-                localTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
-            }
-            else
-            {
-                localTransform = rtabmap::Transform::getIdentity();
-            }
 
-            if(!localTransform.isNull())
-            {
-                float depth_rotated = (odom.rotation() * localTransform).z();
+            rtabmap::Transform baseToDepthTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
 
-                RCLCPP_INFO(get_logger(), "Using absolute depth %f at %lf in local frame ", depthValue + depth_rotated, depthTimestamp);
+            if(!baseToDepthTransform.isNull())
+            {
+                data.setAbsoluteDepth({depthValue, baseToDepthTransform});
                 absoluteDepths_ = newAbsoluteDepths;
             }
+        }
+
+
+		// Additional graph links
+		if(!additionalGraphLinks_.empty())
+        {
+	        std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAdditionalGraphLinks;
+            double poseTimestamp = stamp.nanoseconds() * 1e-9;
+            std::map<std::string, std::pair<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
+            for (const auto& link : additionalGraphLinks_) {
+                double linkTimestamp = link.header.stamp.sec + link.header.stamp.nanosec * 1e-9;
+                if (linkTimestamp > poseTimestamp) 
+                {
+                    newAdditionalGraphLinks.push_back(link);
+                }
+                else if (newestMessagePerId[link.header.frame_id].first < linkTimestamp)
+                {
+                    newestMessagePerId[link.header.frame_id] = {linkTimestamp, link};
+                }
+            }
+
+            for (const auto& mapping : newestMessagePerId)
+            {
+                const auto & pose = mapping.second.second;
+                const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
+                const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
+                data.addArbitraryPoseConstraint({transform, covariance});
+            }
+            additionalGraphLinks_ = newAdditionalGraphLinks;
         }
 
 		double timeRtabmap = 0.0;
@@ -2485,6 +2513,35 @@ void CoreWrapper::initialPoseCallback(const geometry_msgs::msg::PoseWithCovarian
 	}
 
 	rtabmap_.setInitialPose(intialPose);
+}
+
+
+void CoreWrapper::additionalGraphLinkAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+{
+	if(!paused_)
+	{
+	    additionalGraphLinks_.push_back(*msg);
+        if(additionalGraphLinks_.size() > 1000)
+        {
+            additionalGraphLinks_.erase(additionalGraphLinks_.begin());
+        }
+	}
+}
+
+void CoreWrapper::additionalGraphLinkOdometryAsyncCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+	if(!paused_)
+	{
+        const auto & odom = *msg;
+        geometry_msgs::msg::PoseWithCovarianceStamped pose;
+        pose.header = odom.header;
+        pose.pose = odom.pose;
+	    additionalGraphLinks_.push_back(pose);
+        if(additionalGraphLinks_.size() > 1000)
+        {
+            additionalGraphLinks_.erase(additionalGraphLinks_.begin());
+        }
+	}
 }
 
 void CoreWrapper::goalCommonCallback(

@@ -1,0 +1,105 @@
+#!/usr/bin/env python3
+
+import rclpy
+from rclpy.node import Node, QoSProfile
+
+from nav_msgs.msg import Odometry
+from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
+
+import numpy as np
+from scipy.spatial.transform import Rotation as R
+
+def numpy_matrix_from_ros_pose(pose : Pose):
+    matrix = np.zeros((4, 4))
+    rotation_matrix = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z,
+                                   pose.orientation.w]).as_matrix().copy()
+    matrix[:rotation_matrix.shape[0],
+           :rotation_matrix.shape[1]] = rotation_matrix
+
+    matrix[0][3] = pose.position.x
+    matrix[1][3] = pose.position.y
+    matrix[2][3] = pose.position.z
+    matrix[3][3] = 1.0
+
+    return matrix
+
+
+def fill_ros_pose_from_numpy_matrix(pose : Pose, matrix : np.matrix):
+    pose.position.x = matrix[0][3]
+    pose.position.y = matrix[1][3]
+    pose.position.z = matrix[2][3]
+
+    result_quat = R.from_matrix(matrix[0:3, 0:3]).as_quat()
+    pose.orientation.x = result_quat[0]
+    pose.orientation.y = result_quat[1]
+    pose.orientation.z = result_quat[2]
+    pose.orientation.w = result_quat[3]
+
+
+def get_relative_covariance(current_covariance : np.ndarray, previous_covariance : np.ndarray) -> np.ndarray:
+    new_covariance = np.empty(36)
+    new_covariance[0] = abs(current_covariance[0] - previous_covariance[0])
+    new_covariance[7] = abs(current_covariance[7] - previous_covariance[7])
+    new_covariance[14] = abs(current_covariance[14] - previous_covariance[14])
+    new_covariance[21] = abs(current_covariance[21] - previous_covariance[21])
+    new_covariance[28] = abs(current_covariance[28] - previous_covariance[28])
+    new_covariance[35] = abs(current_covariance[35] - previous_covariance[35])
+    return new_covariance
+
+
+class OdometryFilter(Node):
+
+    def __init__(self):
+        super().__init__('odometry_filter')
+        self.odometry_subscriber_ = self.create_subscription(Odometry, '/odometry/filtered', self.filtering_callback, 10)
+        self.pose_publisher_ = self.create_publisher(PoseWithCovarianceStamped, '/pose/filtered', 10)
+
+        self.declare_parameter('covariance_factor', 1.0)
+        self.covariance_factor_ = self.get_parameter('covariance_factor').get_parameter_value().double_value
+
+        self.declare_parameter('output_relative_poses', True)
+        self.publish_relative_poses_ = self.get_parameter('output_relative_poses').get_parameter_value().bool_value
+
+        self.last_pose_matrix_ = None
+        self.last_covariance_matrix_ = np.empty([36])
+
+    def filtering_callback(self, odom_msg : Odometry):
+        pose_msg = PoseWithCovarianceStamped()
+        pose_msg.header = odom_msg.header
+        pose_msg.pose = odom_msg.pose
+        pose_msg.pose.covariance[0]  *= self.covariance_factor_
+        pose_msg.pose.covariance[7]  *= self.covariance_factor_
+        pose_msg.pose.covariance[14] *= self.covariance_factor_
+        pose_msg.pose.covariance[21] *= self.covariance_factor_
+        pose_msg.pose.covariance[28] *= self.covariance_factor_
+        pose_msg.pose.covariance[35] *= self.covariance_factor_
+
+        if (self.publish_relative_poses_):
+            pose_msg.header.frame_id = odom_msg.child_frame_id
+            current_pose_matrix = numpy_matrix_from_ros_pose(pose_msg.pose.pose)
+            current_covariance_matrix = pose_msg.pose.covariance
+            if (self.last_pose_matrix_) is not None:
+                # Set relative pose
+                relative_pose_matrix = np.matmul(current_pose_matrix, np.linalg.inv(self.last_pose_matrix_)) 
+                fill_ros_pose_from_numpy_matrix(pose_msg.pose.pose, relative_pose_matrix)
+                # Set relative covariance
+                pose_msg.pose.covariance = get_relative_covariance(current_covariance_matrix, self.last_covariance_matrix_)
+                # Publish
+                self.pose_publisher_.publish(pose_msg)
+            self.last_pose_matrix_ = current_pose_matrix 
+            self.last_covariance_matrix_ = current_covariance_matrix 
+        else:
+            self.pose_publisher_.publish(pose_msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    odometry_filter = OdometryFilter()
+
+    rclpy.spin(odometry_filter)
+
+    odometry_filter.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

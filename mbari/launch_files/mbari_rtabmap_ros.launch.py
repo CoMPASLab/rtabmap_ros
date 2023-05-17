@@ -113,6 +113,8 @@ def launch_setup(context, *args, **kwargs):
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
                 ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
+                ("additional_graph_links", LaunchConfiguration('additional_graph_link_topic')),
+                ("additional_graph_links_odometry", LaunchConfiguration('additional_graph_link_odometry_topic')),
                 ("odom", LaunchConfiguration('odom_topic'))],
             arguments=[LaunchConfiguration("args")],
             prefix=LaunchConfiguration('launch_prefix'),
@@ -188,7 +190,7 @@ def generate_launch_description():
         DeclareLaunchArgument('rviz_cfg', default_value=config_rviz,               description='Configuration path of rviz2.'),
 
         DeclareLaunchArgument('frame_id',       default_value='base_link',          description='Fixed frame id of the robot (base frame), you may set "base_link" or "base_footprint" if they are published. For camera-only config, this could be "camera_link".'),
-        DeclareLaunchArgument('odom_frame_id',  default_value='',                   description='If set, TF is used to get odometry instead of the topic.'),
+        DeclareLaunchArgument('odom_frame_id',  default_value='odom',                   description='If set, TF is used to get odometry instead of the topic.'),
         DeclareLaunchArgument('map_frame_id',   default_value='map',                description='Output map frame id (TF).'),
         DeclareLaunchArgument('publish_tf_map', default_value='true',               description='Publish TF between map and odometry.'),
         DeclareLaunchArgument('namespace',      default_value='rtabmap',            description=''),
@@ -237,7 +239,12 @@ def generate_launch_description():
         # imu
         DeclareLaunchArgument('imu_topic',        default_value='/imu/data', description='Used with VIO approaches and for SLAM graph optimization (gravity constraints).'),
         DeclareLaunchArgument('wait_imu_to_init', default_value='false',     description=''),
-        OpaqueFunction(function=launch_setup)
+
+        # Additional graph links
+        DeclareLaunchArgument('additional_graph_link_odometry_topic', default_value='additional_graph_links_odometry'),
+        DeclareLaunchArgument('additional_graph_link_topic', default_value='additional_graph_links'),
+
+        OpaqueFunction(function=launch_setup),
     ])
 
 

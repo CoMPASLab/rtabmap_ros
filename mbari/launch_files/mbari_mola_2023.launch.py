@@ -10,7 +10,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    lcm_to_ros2_dir = get_package_share_directory('lass_old_lcm_to_ros2')
+    lcm_to_ros2_dir = get_package_share_directory('mola_lcm_to_ros2')
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers.launch.py'))
@@ -19,10 +19,10 @@ def generate_launch_description():
     rtabmap_ros_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_rtabmap_ros.launch.py'))
 
     left_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_left.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'MOLA_2023', 'rtabmap_calib_left.yaml'
     )
     right_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_right.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'MOLA_2023', 'rtabmap_calib_right.yaml'
     )
 
     config_path = os.path.join(get_package_share_directory("rtabmap_ros"), 'launch',
@@ -49,7 +49,7 @@ def generate_launch_description():
             # Vectornav IMU
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
-                arguments=['0.3025', '-0.0046', '0.0549', '0', '0', '0', '1', 'base_link_frd', 'imu_link_frd'],
+                arguments=['0.395260', '0.177870', '0.278430', '0', '0', '0', '1', 'base_link_frd', 'imu_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -57,12 +57,12 @@ def generate_launch_description():
             # DVL
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_dvl_link_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'dvl_link_frd'],
+                arguments=['0.666930', '0', '0.399570', '0', '0', '0', '1', 'base_link_frd', 'dvl_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth from Kearfott INS
+            # Pressure sensor
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
                 arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd' ],
@@ -70,16 +70,16 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # PROSILICA 2022
+            # MOLA 2023 stereo extrinsics
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.4552', '-0.46535', '0.096', '3.21355726e-05', '1.17229573e-04', '7.06816690e-01', '7.07396742e-01', 'base_link_frd', 'stereo_camera_left_frd' ],
+                arguments=['0.591950', '0.841250', '0.399570', '4.32978028e-17', '-4.32978028e-17', '7.07106781e-01', '7.07106781e-01', 'base_link_frd', 'stereo_camera_left_frd' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_right_cam_publisher',
-                arguments=['0.4552', '-0.445362646', '0.096', '8.40039367e-05', '1.43110982e-04', '7.06697533e-01', '7.07515773e-01', 'base_link_frd', 'stereo_camera_right_frd' ],
+                arguments=['0.591950', '-0.841250', '0.399570', '4.32978028e-17', '-4.32978028e-17', '7.07106781e-01', '7.07106781e-01', 'base_link_frd', 'stereo_camera_right_frd' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -91,15 +91,6 @@ def generate_launch_description():
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
-
-            # NED to ENU
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='world_enu_to_ned_link_publisher',
-                arguments=['0.0', '0.0', '0.0', '0.70710678', '0.70710678', '0', '0', 'world', 'world_ned' ],
-                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
-
 
             lcm_to_ros2_launch,
             robot_localization_launch,

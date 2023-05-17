@@ -762,6 +762,11 @@ install(DIRECTORY
    DESTINATION share/${PROJECT_NAME}/launch/robot_localization_params
 )
 
+install(PROGRAMS
+  mbari/odometry_filter/odometry_filter
+  DESTINATION lib/${PROJECT_NAME}/
+)
+
 ##
 
 ## install plugins/nodelets xml
