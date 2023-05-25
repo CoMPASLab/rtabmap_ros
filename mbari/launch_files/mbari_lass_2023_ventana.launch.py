@@ -44,12 +44,17 @@ def generate_launch_description():
             DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
             DeclareLaunchArgument('ekf_input_depth_topic', default_value='/converted/depth'),
 
-            DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
+            DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
             # DeclareLaunchArgument('odom_topic', default_value='/odometry/filtered', description=''),
             DeclareLaunchArgument('qos_odom', default_value='1', description=''),
             DeclareLaunchArgument('odom_guess_frame_id', default_value='ekf_odom', description=''),
 
-            # No IMU because Kearfott INS odom's twist angulars are used instead
+            # Depth constraint specific node
+            # Note: This node MUST start before the static transform nodes, therefore must be on top.
+            Node(
+                package='rtabmap_ros', executable='depth_filter', name='depth_filter',
+                namespace=LaunchConfiguration('namespace')
+            ),
 
             # DVL
             Node(
@@ -71,6 +76,14 @@ def generate_launch_description():
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_ins_link_publisher',
                 arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'ins_odom_frd'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Kearfott Depth
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -106,7 +119,7 @@ def generate_launch_description():
             ),
 
             lcm_to_ros2_launch,
-            robot_localization_launch,
+            # robot_localization_launch,
             stereo_proc_launch,
             rtabmap_ros_launch
     ])

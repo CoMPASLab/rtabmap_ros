@@ -767,6 +767,11 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}/
 )
 
+install(PROGRAMS
+  mbari/depth_filter/depth_filter
+  DESTINATION lib/${PROJECT_NAME}/
+)
+
 ##
 
 ## install plugins/nodelets xml
