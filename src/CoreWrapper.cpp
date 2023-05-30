@@ -1973,27 +1973,35 @@ void CoreWrapper::process(
         {
 	        std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAdditionalGraphLinks;
             double poseTimestamp = stamp.nanoseconds() * 1e-9;
-            std::map<std::string, std::pair<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
-            for (const auto& link : additionalGraphLinks_) {
-                double linkTimestamp = link.header.stamp.sec + link.header.stamp.nanosec * 1e-9;
+            std::map<std::string, std::map<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
+            for (const auto& poseMsg : additionalGraphLinks_) {
+                double linkTimestamp = poseMsg.header.stamp.sec + poseMsg.header.stamp.nanosec * 1e-9;
                 if (linkTimestamp > poseTimestamp) 
                 {
-                    newAdditionalGraphLinks.push_back(link);
+                    newAdditionalGraphLinks.push_back(poseMsg);
                 }
-                else if (newestMessagePerId[link.header.frame_id].first < linkTimestamp)
+                else
                 {
-                    newestMessagePerId[link.header.frame_id] = {linkTimestamp, link};
+                    newestMessagePerId[poseMsg.header.frame_id][linkTimestamp] = poseMsg;
                 }
             }
 
-            for (const auto& mapping : newestMessagePerId)
+            for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
-                const auto & pose = mapping.second.second;
+                Transform totalTransform;
+				cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
+				for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
+				{
+					const auto & pose = poseMsgMapping.second;
                 const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
                 const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
-                data.addArbitraryPoseConstraint({transform, covariance});
+
+					totalTransform = totalTransform * transform;
+					totalCovariance = covariance;
             }
+				data.addArbitraryPoseConstraint({totalTransform, totalCovariance});
             additionalGraphLinks_ = newAdditionalGraphLinks;
+        }
         }
 
 		double timeRtabmap = 0.0;
