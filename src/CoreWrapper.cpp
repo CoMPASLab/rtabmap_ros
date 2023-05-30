@@ -2422,8 +2422,7 @@ void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithC
 {
 	if(!paused_)
 	{
-		cv::Mat depthCovarianceMatrix(1, 36, CV_64FC1);
-		std::memcpy(depthCovarianceMatrix.data, msg->pose.covariance.data(), 36 * sizeof(double));
+		cv::Mat depthCovarianceMatrix = cv::Mat(1, 36, CV_64FC1, msg->pose.covariance.data()).clone();
 		absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, depthCovarianceMatrix.reshape(0, 6))));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
