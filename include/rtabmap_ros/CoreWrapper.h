@@ -393,7 +393,7 @@ private:
 	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr additionalGraphLinkOdometrySub_;
 
 	std::map<double, rtabmap::Transform> imus_;
-	std::map<double, float> absoluteDepths_;
+	std::map<double, std::pair<float, double*>> absoluteDepths_;
     std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> additionalGraphLinks_;
 
 	std::string imuFrameId_;

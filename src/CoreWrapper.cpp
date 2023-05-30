@@ -1934,9 +1934,9 @@ void CoreWrapper::process(
 		// Absolute depths
 		if(!absoluteDepths_.empty())
 		{
-	        std::map<double, float> newAbsoluteDepths;
+	        std::map<double, std::pair<float, double*>> newAbsoluteDepths;
             double depthTimestamp = absoluteDepths_.begin()->first;
-            float depthValue = absoluteDepths_.begin()->second;
+            float depthValue = absoluteDepths_.begin()->second.first;
             double poseTimestamp = stamp.nanoseconds() * 1e-9;
             bool addRest = false;
             for (const auto& depth : absoluteDepths_) {
@@ -1947,14 +1947,14 @@ void CoreWrapper::process(
                 {
                     // Interpolate depth between timestamps
                     double interpolation = (poseTimestamp - depthTimestamp) / (depth.first - depthTimestamp); 
-                    depthValue = depthValue + (depth.second - depthValue) * interpolation;
+                    depthValue = depthValue + (depth.second.first - depthValue) * interpolation;
                     newAbsoluteDepths[depth.first] = depth.second;
                     addRest = true;
                 }
                 else
                 {
                     depthTimestamp = depth.first;
-                    depthValue = depth.second;
+                    depthValue = depth.second.first;
                 }
             }
 
@@ -1962,7 +1962,7 @@ void CoreWrapper::process(
 
             if(!baseToDepthTransform.isNull())
             {
-                data.setAbsoluteDepth({depthValue, baseToDepthTransform});
+                data.setAbsoluteDepth({depthValue, newAbsoluteDepths.begin()->second.second, baseToDepthTransform});
                 absoluteDepths_ = newAbsoluteDepths;
             }
         }
@@ -2422,7 +2422,7 @@ void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithC
 {
 	if(!paused_)
 	{
-        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, msg->pose.pose.position.z));
+        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, &(msg->pose.covariance[0]))));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
         {
