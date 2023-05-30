@@ -1934,7 +1934,7 @@ void CoreWrapper::process(
 		// Absolute depths
 		if(!absoluteDepths_.empty())
 		{
-	        std::map<double, std::pair<float, double*>> newAbsoluteDepths;
+	        std::map<double, std::pair<float, cv::Mat>> newAbsoluteDepths;
             double depthTimestamp = absoluteDepths_.begin()->first;
             float depthValue = absoluteDepths_.begin()->second.first;
             double poseTimestamp = stamp.nanoseconds() * 1e-9;
@@ -2422,7 +2422,9 @@ void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithC
 {
 	if(!paused_)
 	{
-        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, &(msg->pose.covariance[0]))));
+		cv::Mat depthCovarianceMatrix(1, 36, CV_64FC1);
+		std::memcpy(depthCovarianceMatrix.data, msg->pose.covariance.data(), 36 * sizeof(double));
+		absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, depthCovarianceMatrix.reshape(0, 6))));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
         {
