@@ -45,6 +45,7 @@ def generate_launch_description():
             DeclareLaunchArgument('ekf_input_depth_topic', default_value='/converted/depth'),
 
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+            DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
             # DeclareLaunchArgument('odom_topic', default_value='/odometry/filtered', description=''),
             DeclareLaunchArgument('qos_odom', default_value='1', description=''),
             DeclareLaunchArgument('odom_guess_frame_id', default_value='ekf_odom', description=''),
@@ -53,6 +54,13 @@ def generate_launch_description():
             # Note: This node MUST start before the static transform nodes, therefore must be on top.
             Node(
                 package='rtabmap_ros', executable='depth_filter', name='depth_filter',
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Odometry relative constraint specific node
+            # Note: This node MUST start before the static transform nodes, therefore must be on top.
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
                 namespace=LaunchConfiguration('namespace')
             ),
 

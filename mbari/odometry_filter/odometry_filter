@@ -1,103 +1,348 @@
 #!/usr/bin/env python3
 
 import rclpy
-from rclpy.node import Node, QoSProfile
-
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
 from nav_msgs.msg import Odometry
-from geometry_msgs.msg import Pose, PoseWithCovarianceStamped
-
-import numpy as np
+from geometry_msgs.msg import PoseWithCovarianceStamped
 from scipy.spatial.transform import Rotation as R
 
-def numpy_matrix_from_ros_pose(pose : Pose):
-    matrix = np.zeros((4, 4))
-    rotation_matrix = R.from_quat([pose.orientation.x, pose.orientation.y, pose.orientation.z,
-                                   pose.orientation.w]).as_matrix().copy()
-    matrix[:rotation_matrix.shape[0],
-           :rotation_matrix.shape[1]] = rotation_matrix
+import tf2_ros
+import tf2_msgs.msg
 
-    matrix[0][3] = pose.position.x
-    matrix[1][3] = pose.position.y
-    matrix[2][3] = pose.position.z
-    matrix[3][3] = 1.0
+import numpy as np
+from dataclasses import dataclass
+from typing import List
 
-    return matrix
+@dataclass
+class vector:
+    """
+    Vector structure
 
+    x: float
+        x component.
+    y: float
+        y component.
+    z: float
+        z component.
+    """
+    x: float
+    y: float
+    z: float
 
-def fill_ros_pose_from_numpy_matrix(pose : Pose, matrix : np.matrix):
-    pose.position.x = matrix[0][3]
-    pose.position.y = matrix[1][3]
-    pose.position.z = matrix[2][3]
-
-    result_quat = R.from_matrix(matrix[0:3, 0:3]).as_quat()
-    pose.orientation.x = result_quat[0]
-    pose.orientation.y = result_quat[1]
-    pose.orientation.z = result_quat[2]
-    pose.orientation.w = result_quat[3]
-
-
-def get_relative_covariance(current_covariance : np.ndarray, previous_covariance : np.ndarray) -> np.ndarray:
-    new_covariance = np.empty(36)
-    new_covariance[0] = abs(current_covariance[0] - previous_covariance[0])
-    new_covariance[7] = abs(current_covariance[7] - previous_covariance[7])
-    new_covariance[14] = abs(current_covariance[14] - previous_covariance[14])
-    new_covariance[21] = abs(current_covariance[21] - previous_covariance[21])
-    new_covariance[28] = abs(current_covariance[28] - previous_covariance[28])
-    new_covariance[35] = abs(current_covariance[35] - previous_covariance[35])
-    return new_covariance
+    def vector(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z])
 
 
-class OdometryFilter(Node):
+@dataclass
+class quaternion:
+    """
+    Quaternion structure
+
+    x: float
+        x component.
+    y: float
+        y component.
+    z: float
+        z component.
+    w: float
+        w component.
+    """
+    x: float
+    y: float
+    z: float
+    w: float
+    
+    def rph(self) -> np.ndarray:
+        return R.from_quat([self.x, self.y, self.z, self.w]).as_euler("ZYX").flatten()[::-1]
+    
+    def rot_mat(self) -> np.ndarray:
+        return R.from_quat([self.x, self.y, self.z, self.w]).as_matrix()
+    
+    def quaternion(self) -> np.ndarray:
+        return np.array([self.x, self.y, self.z, self.w])
+
+
+class TransformMatrix:
+
+    def __init__(self, x: float, y: float, z: float, qx: float, qy: float, qz: float, qw: float) -> None:
+        self.translation = [x, y, z]
+        self.rotation = [qx, qy, qz, qw]
+
+    @property
+    def transformation(self) -> np.ndarray:
+        """Transformation matrix"""
+        t = np.eye(4)
+        t[:3, :3] = self._rotation.rot_mat()
+        t[:3, -1] = self._translation.vector()
+        return t
+
+    @property
+    def translation(self) -> vector:
+        """Translation component of transformation matrix"""
+        return self._translation
+    
+    @translation.setter
+    def translation(self, value: List[float]) -> None:
+        self._translation = vector(value[0], value[1], value[2])
+    
+    @property
+    def rotation(self) -> quaternion:
+        """Translation component of transformation matrix"""
+        return self._rotation
+    
+    @rotation.setter
+    def rotation(self, value: List[float]) -> None:
+        self._rotation = quaternion(value[0], value[1], value[2], value[3])
+
+
+class SubPub(Node):
 
     def __init__(self):
-        super().__init__('odometry_filter')
-        self.odometry_subscriber_ = self.create_subscription(Odometry, '/odometry/filtered', self.filtering_callback, 10)
-        self.pose_publisher_ = self.create_publisher(PoseWithCovarianceStamped, '/pose/filtered', 10)
+        super().__init__('odometry_subscriber')
 
-        self.declare_parameter('covariance_factor', 1.0)
-        self.covariance_factor_ = self.get_parameter('covariance_factor').get_parameter_value().double_value
+        # Verbose for debugging
+        self.verbose = False
+        
+        # Initialize poses
+        self.previous_transform = None
+        self.current_transform = None
+        self.relative_transform = None
 
-        self.declare_parameter('output_relative_poses', True)
-        self.publish_relative_poses_ = self.get_parameter('output_relative_poses').get_parameter_value().bool_value
+        # Initialize transform matrices
+        self.transform_00 = None
+        self.transform_01 = None
+        self.transform_02 = None
+        self.full_transformation_inv = None
 
-        self.last_pose_matrix_ = None
-        self.last_covariance_matrix_ = np.empty([36])
+        # Common depth messages attributes
+        self.pose_stamp = None
+        self.pose_covariance = None
 
-    def filtering_callback(self, odom_msg : Odometry):
+        # Create a transform listener
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+
+        # Create a subscriber for the static transform
+        self.static_transform_subscriber = self.create_subscription(
+            tf2_msgs.msg.TFMessage,
+            '/tf_static',
+            self.static_transform_callback,
+            QoSProfile(depth=10)
+        )
+
+        # Create a subscriber for the odometry
+        self.odometry_subscriber = self.create_subscription(
+            Odometry,
+            '/converted/ins',
+            self.odom_callback,
+            QoSProfile( reliability=QoSReliabilityPolicy.BEST_EFFORT,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10)
+        )
+
+        # Create a publisher for the transformed depth
+        self.odometry_publisher = self.create_publisher(
+            PoseWithCovarianceStamped,
+            '/rtabmap/additional_graph_links',
+            QoSProfile(depth=10))
+
+    def get_transform(self) -> None:
+        if self.transform_00 is not None \
+        and self.transform_01 is not None \
+        and self.transform_02 is not None:
+            # Compute transformation from base_link to depth_link_abs_frd
+            full_transformation = self.transform_00.transformation @\
+            self.transform_01.transformation @\
+            self.transform_02.transformation
+
+            # Compute transformation from depth_link_abs_frd to base_link
+            full_transformation_inv = np.linalg.inv(full_transformation)
+
+            # Parse components
+            x = full_transformation_inv[0, -1]
+            y = full_transformation_inv[1, -1]
+            z = full_transformation_inv[2, -1]
+            quat = R.from_matrix(full_transformation_inv[:3, :3]).as_quat()
+            qx, qy, qz, qw = quat[0], quat[1], quat[2], quat[3]
+
+            # Create transformation matrix from TransformMatrix class
+            self.full_transformation_inv = TransformMatrix(x, y, z, qx, qy, qz, qw)
+            if self.verbose:
+                self.get_logger().info("Full transform computed...")
+                self.get_logger().info("Frame ID: base_link")
+                self.get_logger().info("Child frame ID: depth_link_abs_frd")
+                self.get_logger().info(f"Translation: {self.full_transformation_inv.translation.vector()}")
+                self.get_logger().info(f"Rotation: {self.full_transformation_inv.rotation.rph()}\n")
+
+    def static_transform_callback(self, msg) -> None:
+        # Process the received static transform
+        for transform_stamped in msg.transforms:
+            
+            # Transform from absolute to local depth link
+            if transform_stamped.header.frame_id == "ins_odom_frd":
+
+                # Parse rotation and translation components
+                translation = transform_stamped.transform.translation
+                rotation = transform_stamped.transform.rotation
+                x, y, z = translation.x, translation.y, translation.z
+                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
+
+                # Create transformation matrix from TransformMatrix class
+                self.transform_00 = TransformMatrix(x, y, z, qx, qy, qz, qw)
+                
+                # Report frame
+                if self.verbose:
+                    self.get_logger().info("Odometry transform 00 received...")
+                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
+                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
+                    self.get_logger().info(f"Translation: {self.transform_00.translation.vector()}")
+                    self.get_logger().info(f"Rotation: {self.transform_00.rotation.rph()}\n")
+            
+            # Transform from local depth link to base link
+            elif transform_stamped.header.frame_id == "base_link_frd" \
+                and transform_stamped.child_frame_id == "ins_odom_frd":
+                
+                # Parse rotation and translation components
+                translation = transform_stamped.transform.translation
+                rotation = transform_stamped.transform.rotation
+                x, y, z = translation.x, translation.y, translation.z
+                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
+
+                # Create transformation matrix from TransformMatrix class
+                self.transform_01 = TransformMatrix(x, y, z, qx, qy, qz, qw)
+                
+                # Report frame
+                if self.verbose:
+                    self.get_logger().info("Odometry transform 01 received...")
+                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
+                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
+                    self.get_logger().info(f"Translation: {self.transform_01.translation.vector()}")
+                    self.get_logger().info(f"Rotation: {self.transform_01.rotation.rph()}\n")
+            
+            # Transfrom from base link FRD to base link FLU
+            elif transform_stamped.header.frame_id == "base_link" \
+                and transform_stamped.child_frame_id == "base_link_frd":
+                
+                # Parse rotation and translation components
+                translation = transform_stamped.transform.translation
+                rotation = transform_stamped.transform.rotation
+                x, y, z = translation.x, translation.y, translation.z
+                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
+
+                # Create transformation matrix from TransformMatrix class
+                self.transform_02 = TransformMatrix(x, y, z, qx, qy, qz, qw)
+                
+                # Report frame
+                if self.verbose:
+                    self.get_logger().info("Odometry transform 02 received...")
+                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
+                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
+                    self.get_logger().info(f"Translation: {self.transform_02.translation.vector()}")
+                    self.get_logger().info(f"Rotation: {self.transform_02.rotation.rph()}\n")
+
+            if self.verbose:
+                self.get_logger().info(f"Transform 00: {self.transform_00}")
+                self.get_logger().info(f"Transform 01: {self.transform_01}")
+                self.get_logger().info(f"Transform 02: {self.transform_02}\n")
+
+            if self.full_transformation_inv is None:
+                self.get_transform()
+
+            
+    def odom_callback(self, msg) -> None:
+        # Update the previous pose
+        if self.current_transform is not None:
+            self.previous_transform = self.current_transform
+
+            if self.verbose:
+                self.get_logger().info("Previous pose...")
+                self.get_logger().info(f"Translation: {self.previous_transform.translation.vector()}")
+                self.get_logger().info(f"Rotation: {self.previous_transform.rotation.rph()}\n")
+
+        # Parse pose from odometry message to create the current pose
+        cx = msg.pose.pose.position.x
+        cy = msg.pose.pose.position.y
+        cz = msg.pose.pose.position.z
+        cqx = msg.pose.pose.orientation.x
+        cqy = msg.pose.pose.orientation.y
+        cqz = msg.pose.pose.orientation.z
+        cqw = msg.pose.pose.orientation.w
+        current_transform = TransformMatrix(cx, cy, cz, cqx, cqy, cqz, cqw)
+
+        # Update common fields
+        self.pose_covariance = msg.pose.covariance
+        self.pose_stamp = msg.header.stamp
+
+        if self.full_transformation_inv is not None:
+            # Transform odometry from ins_odom_ned to base_link
+            current_transformed = self.full_transformation_inv.transformation @ current_transform.transformation
+
+            # Parse components
+            x = current_transformed[0, -1]
+            y = current_transformed[1, -1]
+            z = current_transformed[2, -1]
+            quat = R.from_matrix(current_transformed[:3, :3]).as_quat()
+            qx, qy, qz, qw = quat[0], quat[1], quat[2], quat[3]
+
+            # Save transformed depth
+            self.current_transform = TransformMatrix(x, y, z, qx, qy, qz, qw)
+
+            if self.verbose:
+                self.get_logger().info("Current pose...")
+                self.get_logger().info(f"Translation: {self.current_transform.translation.vector()}")
+                self.get_logger().info(f"Rotation: {self.current_transform.rotation.rph()}\n")
+
+            if self.previous_transform is not None:
+                # Compute relative transform
+                relative_transform = np.linalg.inv(self.previous_transform.transformation) @ self.current_transform.transformation
+
+                # Parse components
+                rx = relative_transform[0, -1]
+                ry = relative_transform[1, -1]
+                rz = relative_transform[2, -1]
+                rquat = R.from_matrix(relative_transform[:3, :3]).as_quat()
+                rqx, rqy, rqz, rqw = rquat[0], rquat[1], rquat[2], rquat[3]
+
+                self.relative_transform = TransformMatrix(rx, ry, rz, rqx, rqy, rqz, rqw)
+                if self.verbose:
+                    self.get_logger().info("Relative pose...")
+                    self.get_logger().info(f"Translation: {self.relative_transform.translation.vector()}")
+                    self.get_logger().info(f"Rotation: {self.relative_transform.rotation.rph()}\n")
+
+                # Publish transformed message
+                self.odom_publish()
+    
+    def odom_publish(self) -> None:
+        # Create relative pose message
         pose_msg = PoseWithCovarianceStamped()
-        pose_msg.header = odom_msg.header
-        pose_msg.pose = odom_msg.pose
-        pose_msg.pose.covariance[0]  *= self.covariance_factor_
-        pose_msg.pose.covariance[7]  *= self.covariance_factor_
-        pose_msg.pose.covariance[14] *= self.covariance_factor_
-        pose_msg.pose.covariance[21] *= self.covariance_factor_
-        pose_msg.pose.covariance[28] *= self.covariance_factor_
-        pose_msg.pose.covariance[35] *= self.covariance_factor_
+        
+        # Populate depth message
+        pose_msg.header.frame_id = "base_link"
+        pose_msg.header.stamp = self.pose_stamp
+        pose_msg.pose.pose.position.x = self.relative_transform.translation.x
+        pose_msg.pose.pose.position.y = self.relative_transform.translation.y
+        pose_msg.pose.pose.position.z = self.relative_transform.translation.z
+        pose_msg.pose.pose.orientation.x = self.relative_transform.rotation.x
+        pose_msg.pose.pose.orientation.y = self.relative_transform.rotation.y
+        pose_msg.pose.pose.orientation.z = self.relative_transform.rotation.z
+        pose_msg.pose.pose.orientation.w = self.relative_transform.rotation.w
+        pose_msg.pose.covariance = self.pose_covariance
 
-        if (self.publish_relative_poses_):
-            pose_msg.header.frame_id = odom_msg.child_frame_id
-            current_pose_matrix = numpy_matrix_from_ros_pose(pose_msg.pose.pose)
-            current_covariance_matrix = pose_msg.pose.covariance
-            if (self.last_pose_matrix_) is not None:
-                # Set relative pose
-                relative_pose_matrix = np.matmul(current_pose_matrix, np.linalg.inv(self.last_pose_matrix_)) 
-                fill_ros_pose_from_numpy_matrix(pose_msg.pose.pose, relative_pose_matrix)
-                # Set relative covariance
-                pose_msg.pose.covariance = get_relative_covariance(current_covariance_matrix, self.last_covariance_matrix_)
-                # Publish
-                self.pose_publisher_.publish(pose_msg)
-            self.last_pose_matrix_ = current_pose_matrix 
-            self.last_covariance_matrix_ = current_covariance_matrix 
-        else:
-            self.pose_publisher_.publish(pose_msg)
+        # Publish message
+        self.odometry_publisher.publish(pose_msg)
+        if self.verbose:
+            self.get_logger().info("Relative pose computed and published...")
+
 
 def main(args=None):
     rclpy.init(args=args)
-    odometry_filter = OdometryFilter()
 
-    rclpy.spin(odometry_filter)
+    ins_subscriber = SubPub()
 
-    odometry_filter.destroy_node()
+    rclpy.spin(ins_subscriber)
+
+    ins_subscriber.destroy_node()
     rclpy.shutdown()
 
 
