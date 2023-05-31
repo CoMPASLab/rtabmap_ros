@@ -1988,7 +1988,7 @@ void CoreWrapper::process(
 
             for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
-                Transform totalTransform;
+                Transform totalTransform = Transform::getIdentity();
 				cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
 				for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
 				{
