@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <std_msgs/msg/detail/header__struct.hpp>
 #include <stdio.h>
 #include <tf2/convert.h>
@@ -1934,9 +1935,9 @@ void CoreWrapper::process(
 		// Absolute depths
 		if(!absoluteDepths_.empty())
 		{
-	        std::map<double, float> newAbsoluteDepths;
+	        std::map<double, std::pair<float, cv::Mat>> newAbsoluteDepths;
             double depthTimestamp = absoluteDepths_.begin()->first;
-            float depthValue = absoluteDepths_.begin()->second;
+            float depthValue = absoluteDepths_.begin()->second.first;
             double poseTimestamp = stamp.nanoseconds() * 1e-9;
             bool addRest = false;
             for (const auto& depth : absoluteDepths_) {
@@ -1947,14 +1948,14 @@ void CoreWrapper::process(
                 {
                     // Interpolate depth between timestamps
                     double interpolation = (poseTimestamp - depthTimestamp) / (depth.first - depthTimestamp); 
-                    depthValue = depthValue + (depth.second - depthValue) * interpolation;
+                    depthValue = depthValue + (depth.second.first - depthValue) * interpolation;
                     newAbsoluteDepths[depth.first] = depth.second;
                     addRest = true;
                 }
                 else
                 {
                     depthTimestamp = depth.first;
-                    depthValue = depth.second;
+                    depthValue = depth.second.first;
                 }
             }
 
@@ -1962,7 +1963,7 @@ void CoreWrapper::process(
 
             if(!baseToDepthTransform.isNull())
             {
-                data.setAbsoluteDepth({depthValue, baseToDepthTransform});
+                data.setAbsoluteDepth({depthValue, newAbsoluteDepths.begin()->second.second, baseToDepthTransform});
                 absoluteDepths_ = newAbsoluteDepths;
             }
         }
@@ -1973,27 +1974,38 @@ void CoreWrapper::process(
         {
 	        std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAdditionalGraphLinks;
             double poseTimestamp = stamp.nanoseconds() * 1e-9;
-            std::map<std::string, std::pair<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
-            for (const auto& link : additionalGraphLinks_) {
-                double linkTimestamp = link.header.stamp.sec + link.header.stamp.nanosec * 1e-9;
+            std::map<std::string, std::map<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
+            for (const auto& poseMsg : additionalGraphLinks_) {
+                double linkTimestamp = poseMsg.header.stamp.sec + poseMsg.header.stamp.nanosec * 1e-9;
                 if (linkTimestamp > poseTimestamp) 
                 {
-                    newAdditionalGraphLinks.push_back(link);
+                    newAdditionalGraphLinks.push_back(poseMsg);
                 }
-                else if (newestMessagePerId[link.header.frame_id].first < linkTimestamp)
+                else
                 {
-                    newestMessagePerId[link.header.frame_id] = {linkTimestamp, link};
+                    newestMessagePerId[poseMsg.header.frame_id][linkTimestamp] = poseMsg;
                 }
             }
 
-            for (const auto& mapping : newestMessagePerId)
+            for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
-                const auto & pose = mapping.second.second;
-                const auto & transform = transformFromPoseMsg(pose.pose.pose);
-				const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
-                data.addArbitraryPoseConstraint({transform, covariance});
+                Transform totalTransform;
+                cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
+                for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
+                {
+                    const auto & pose = poseMsgMapping.second;
+                    const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
+                    const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
+
+                    totalTransform *= transform;
+                    totalCovariance.diag() += covariance.diag();
+                }
+                if (!totalCovariance.empty())
+                {
+                    data.addArbitraryPoseConstraint({totalTransform, totalCovariance});
+                }
+                additionalGraphLinks_ = newAdditionalGraphLinks;
             }
-            additionalGraphLinks_ = newAdditionalGraphLinks;
         }
 
 		double timeRtabmap = 0.0;
@@ -2422,7 +2434,8 @@ void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithC
 {
 	if(!paused_)
 	{
-        absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, msg->pose.pose.position.z));
+		cv::Mat depthCovarianceMatrix = cv::Mat(1, 36, CV_64FC1, msg->pose.covariance.data()).clone();
+		absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, depthCovarianceMatrix.reshape(0, 6))));
 		depthFrameId_ = msg->header.frame_id;
         if(absoluteDepths_.size() > 1000)
         {

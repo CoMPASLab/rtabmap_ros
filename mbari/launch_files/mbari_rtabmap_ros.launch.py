@@ -113,6 +113,7 @@ def launch_setup(context, *args, **kwargs):
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
                 ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
+                ("additional_graph_links", LaunchConfiguration('additional_graph_link_topic')),
                 ("additional_graph_links_odometry", LaunchConfiguration('additional_graph_link_odometry_topic')),
                 ("odom", LaunchConfiguration('odom_topic'))],
             arguments=[LaunchConfiguration("args")],
@@ -241,6 +242,7 @@ def generate_launch_description():
 
         # Additional graph links
         DeclareLaunchArgument('additional_graph_link_odometry_topic', default_value='additional_graph_links_odometry'),
+        DeclareLaunchArgument('additional_graph_link_topic', default_value='additional_graph_links'),
 
         OpaqueFunction(function=launch_setup),
     ])

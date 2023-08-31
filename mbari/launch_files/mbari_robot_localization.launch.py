@@ -31,6 +31,7 @@ def generate_launch_description():
         DeclareLaunchArgument('ekf_input_imu_topic', default_value='/imu'),
         DeclareLaunchArgument('ekf_input_twist_topic', default_value='/twist'),
         DeclareLaunchArgument('ekf_input_odom_topic', default_value='/odom'),
+        DeclareLaunchArgument('ekf_input_depth_topic', default_value='/depth'),
         DeclareLaunchArgument('ekf_config_path', default_value=default_config_path),
 
         Node(
@@ -44,6 +45,7 @@ def generate_launch_description():
                 ("/imu",   LaunchConfiguration('ekf_input_imu_topic')),
                 ("/twist", LaunchConfiguration('ekf_input_twist_topic')),
                 ("/odom", LaunchConfiguration('ekf_input_odom_topic')),
+                ("/depth", LaunchConfiguration('ekf_input_depth_topic')),
             ]
         ),
 ])

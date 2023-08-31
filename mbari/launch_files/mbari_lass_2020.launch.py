@@ -45,6 +45,11 @@ def generate_launch_description():
 
             DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
 
+            DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
+            DeclareLaunchArgument('covariance_factor', default_value='1.0'),
+            DeclareLaunchArgument('output_relative_poses', default_value='True'),
+
+
             # No IMU because Kearfott INS odom's twist angulars are used instead
 
             # DVL
@@ -90,6 +95,15 @@ def generate_launch_description():
                 package='tf2_ros', executable='static_transform_publisher', name='world_enu_to_ned_link_publisher',
                 arguments=['0.0', '0.0', '0.0', '0.70710678', '0.70710678', '0', '0', 'world', 'world_ned' ],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Odometry filter
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                parameters=[{"covariance_factor": LaunchConfiguration('covariance_factor')},
+                            {"output_relative_poses": LaunchConfiguration('output_relative_poses')}],
+                remappings=[("/pose/filtered", LaunchConfiguration('odometry_filter_output_topic'))],
                 namespace=LaunchConfiguration('namespace')
             ),
 

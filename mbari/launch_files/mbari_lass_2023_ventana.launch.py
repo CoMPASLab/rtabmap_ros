@@ -34,7 +34,7 @@ def generate_launch_description():
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7', description='Args'),
+            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 8 --Vis/FeatureType 8 --LoopThr 0.04', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
 
@@ -42,10 +42,27 @@ def generate_launch_description():
             DeclareLaunchArgument('ekf_input_imu_topic', default_value='/converted/imu'),
             DeclareLaunchArgument('ekf_input_twist_topic', default_value='/converted/dvl'),
             DeclareLaunchArgument('ekf_input_odom_topic', default_value='/converted/ins'),
+            DeclareLaunchArgument('ekf_input_depth_topic', default_value='/converted/depth'),
 
-            DeclareLaunchArgument('absolute_depth_topic', default_value='/converted/depth'),
+            DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+            DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
+            # DeclareLaunchArgument('odom_topic', default_value='/odometry/filtered', description=''),
+            DeclareLaunchArgument('qos_odom', default_value='1', description=''),
+            DeclareLaunchArgument('odom_guess_frame_id', default_value='ekf_odom', description=''),
 
-            # No IMU because Kearfott INS odom's twist angulars are used instead
+            # Depth constraint specific node
+            # Note: This node MUST start before the static transform nodes, therefore must be on top.
+            Node(
+                package='rtabmap_ros', executable='depth_filter', name='depth_filter',
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Odometry relative constraint specific node
+            # Note: This node MUST start before the static transform nodes, therefore must be on top.
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                namespace=LaunchConfiguration('namespace')
+            ),
 
             # DVL
             Node(
@@ -55,11 +72,27 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Depth from Kearfott INS
+            # Kearfott IMU
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_imu_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'imu_link_frd'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Kearfott INS
+            Node(
+                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_ins_link_publisher',
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'ins_odom_frd'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
+
+            # Kearfott Depth
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.0', '0.0', '0.0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd' ],
-                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd'],
+                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
 
