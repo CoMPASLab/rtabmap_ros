@@ -127,7 +127,7 @@ def generate_launch_description():
             ),
 
             lcm_to_ros2_launch,
-            # robot_localization_launch,
+            robot_localization_launch,
             stereo_proc_launch,
             rtabmap_ros_launch
     ])
