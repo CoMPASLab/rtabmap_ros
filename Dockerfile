@@ -115,13 +115,13 @@ WORKDIR /root/rtabmap_ws/src
 ARG READ_TOKEN
 
 # Clone rtabmap (develop branch)
-RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap.git -b feat-arbitrary-graph-constraints
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap.git -b develop
 
 # Clone rtabmap_ros (mbari branch)
 RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap_ros.git -b mbari
 
 # Clone lcm_to_ros (ros2 branch)
-RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git -b ros2_dev_mbari_jpg
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git -b ros2
 
 # Run colcon build in workspace directory
 WORKDIR /root/rtabmap_ws
