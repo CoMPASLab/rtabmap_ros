@@ -40,10 +40,10 @@ RUN git clone https://github.com/borglab/gtsam.git && \
     make -j${NUM_THREADS} install && \
     cd ${DEPS_DIR} && rm -rf gtsam
 
-# Clone, build, and install OpenCV @ 4.7.0
+# Clone, build, and install OpenCV @ 4.2.0
 RUN git clone https://github.com/opencv/opencv.git && \
     cd opencv && \
-    git checkout 4.7.0 && \
+    git checkout 4.2.0 && \
     mkdir build && \
     cd build && \
     cmake \
@@ -115,13 +115,13 @@ WORKDIR /root/rtabmap_ws/src
 ARG READ_TOKEN
 
 # Clone rtabmap (develop branch)
-RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap.git -b develop
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap.git -b feat-arbitrary-graph-constraints
 
 # Clone rtabmap_ros (mbari branch)
 RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap_ros.git -b mbari
 
 # Clone lcm_to_ros (ros2 branch)
-RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git -b ros2
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git -b ros2_dev_mbari_jpg
 
 # Run colcon build in workspace directory
 WORKDIR /root/rtabmap_ws

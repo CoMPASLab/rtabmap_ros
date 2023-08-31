@@ -3,7 +3,6 @@
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
-from nav_msgs.msg import Odometry
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from scipy.spatial.transform import Rotation as R
 
@@ -99,25 +98,23 @@ class TransformMatrix:
 class SubPub(Node):
 
     def __init__(self):
-        super().__init__('odometry_subscriber')
+        super().__init__('depth_subscriber')
 
         # Verbose for debugging
         self.verbose = False
         
-        # Initialize poses
-        self.previous_transform = None
-        self.current_transform = None
-        self.relative_transform = None
-
         # Initialize transform matrices
         self.transform_00 = None
         self.transform_01 = None
         self.transform_02 = None
         self.full_transformation_inv = None
 
+        # Original depth memory
+        self.original_depth = None
+
         # Common depth messages attributes
-        self.pose_stamp = None
-        self.pose_covariance = None
+        self.depth_stamp = None
+        self.depth_covariance = None
 
         # Create a transform listener
         self.tf_buffer = tf2_ros.Buffer()
@@ -131,20 +128,20 @@ class SubPub(Node):
             QoSProfile(depth=10)
         )
 
-        # Create a subscriber for the odometry
-        self.odometry_subscriber = self.create_subscription(
-            Odometry,
-            '/converted/ins',
-            self.odom_callback,
+        # Create a subscriber for the depth
+        self.depth_subscriber = self.create_subscription(
+            PoseWithCovarianceStamped,
+            '/converted/depth',
+            self.depth_callback,
             QoSProfile( reliability=QoSReliabilityPolicy.BEST_EFFORT,
             history=QoSHistoryPolicy.KEEP_LAST,
             depth=10)
         )
 
         # Create a publisher for the transformed depth
-        self.odometry_publisher = self.create_publisher(
+        self.depth_publisher = self.create_publisher(
             PoseWithCovarianceStamped,
-            '/rtabmap/additional_graph_links',
+            '/depth/filtered',
             QoSProfile(depth=10))
 
     def get_transform(self) -> None:
@@ -180,7 +177,7 @@ class SubPub(Node):
         for transform_stamped in msg.transforms:
             
             # Transform from absolute to local depth link
-            if transform_stamped.header.frame_id == "ins_odom_frd":
+            if transform_stamped.header.frame_id == "depth_link_frd":
 
                 # Parse rotation and translation components
                 translation = transform_stamped.transform.translation
@@ -193,7 +190,7 @@ class SubPub(Node):
                 
                 # Report frame
                 if self.verbose:
-                    self.get_logger().info("Odometry transform 00 received...")
+                    self.get_logger().info("Depth transform 00 received...")
                     self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
                     self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
                     self.get_logger().info(f"Translation: {self.transform_00.translation.vector()}")
@@ -201,7 +198,7 @@ class SubPub(Node):
             
             # Transform from local depth link to base link
             elif transform_stamped.header.frame_id == "base_link_frd" \
-                and transform_stamped.child_frame_id == "ins_odom_frd":
+                and transform_stamped.child_frame_id == "depth_link_frd":
                 
                 # Parse rotation and translation components
                 translation = transform_stamped.transform.translation
@@ -214,7 +211,7 @@ class SubPub(Node):
                 
                 # Report frame
                 if self.verbose:
-                    self.get_logger().info("Odometry transform 01 received...")
+                    self.get_logger().info("Depth transform 01 received...")
                     self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
                     self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
                     self.get_logger().info(f"Translation: {self.transform_01.translation.vector()}")
@@ -235,7 +232,7 @@ class SubPub(Node):
                 
                 # Report frame
                 if self.verbose:
-                    self.get_logger().info("Odometry transform 02 received...")
+                    self.get_logger().info("Depth transform 02 received...")
                     self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
                     self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
                     self.get_logger().info(f"Translation: {self.transform_02.translation.vector()}")
@@ -250,99 +247,64 @@ class SubPub(Node):
                 self.get_transform()
 
             
-    def odom_callback(self, msg) -> None:
-        # Update the previous pose
-        if self.current_transform is not None:
-            self.previous_transform = self.current_transform
-
-            if self.verbose:
-                self.get_logger().info("Previous pose...")
-                self.get_logger().info(f"Translation: {self.previous_transform.translation.vector()}")
-                self.get_logger().info(f"Rotation: {self.previous_transform.rotation.rph()}\n")
-
-        # Parse pose from odometry message to create the current pose
-        cx = msg.pose.pose.position.x
-        cy = msg.pose.pose.position.y
-        cz = msg.pose.pose.position.z
-        cqx = msg.pose.pose.orientation.x
-        cqy = msg.pose.pose.orientation.y
-        cqz = msg.pose.pose.orientation.z
-        cqw = msg.pose.pose.orientation.w
-        current_transform = TransformMatrix(cx, cy, cz, cqx, cqy, cqz, cqw)
-
-        # Update common fields
-        self.pose_covariance = msg.pose.covariance
-        self.pose_stamp = msg.header.stamp
+    def depth_callback(self, msg) -> None:
+        # Process the received depth
+        if self.original_depth is None:
+            self.original_depth = msg.pose.pose.position.z
+        if self.verbose:
+            self.get_logger().info(f"Original depth: {self.original_depth:.4f} m\n")
+            self.get_logger().info(f"Received depth: {msg.pose.pose.position.z:.4f} m\n")
+        self.depthTransform = TransformMatrix(0.0, 0.0, msg.pose.pose.position.z, 0.0, 0.0, 0.0, 1.0)
+        self.depth_covariance = msg.pose.covariance
+        self.depth_stamp = msg.header.stamp
 
         if self.full_transformation_inv is not None:
-            # Transform odometry from ins_odom_ned to base_link
-            current_transformed = self.full_transformation_inv.transformation @ current_transform.transformation
+            # Transform depth from depth_base_link_abs_frd to base_link
+            depth_transformed = self.full_transformation_inv.transformation @ self.depthTransform.transformation
 
             # Parse components
-            x = current_transformed[0, -1]
-            y = current_transformed[1, -1]
-            z = current_transformed[2, -1]
-            quat = R.from_matrix(current_transformed[:3, :3]).as_quat()
+            x = depth_transformed[0, -1]
+            y = depth_transformed[1, -1]
+            z = depth_transformed[2, -1]
+            quat = R.from_matrix(depth_transformed[:3, :3]).as_quat()
             qx, qy, qz, qw = quat[0], quat[1], quat[2], quat[3]
 
             # Save transformed depth
-            self.current_transform = TransformMatrix(x, y, z, qx, qy, qz, qw)
+            self.depthTransformed = TransformMatrix(x, y, z, qx, qy, qz, qw)
 
             if self.verbose:
-                self.get_logger().info("Current pose...")
-                self.get_logger().info(f"Translation: {self.current_transform.translation.vector()}")
-                self.get_logger().info(f"Rotation: {self.current_transform.rotation.rph()}\n")
+                self.get_logger().info("Depth transformed computed...")
+                self.get_logger().info(f"Frame ID: base_link")
+                self.get_logger().info(f"Translation: {self.depthTransformed.translation.vector()}")
+                self.get_logger().info(f"Rotation: {self.depthTransformed.rotation.rph()}\n")
 
-            if self.previous_transform is not None:
-                # Compute relative transform
-                relative_transform = np.linalg.inv(self.previous_transform.transformation) @ self.current_transform.transformation
-
-                # Parse components
-                rx = relative_transform[0, -1]
-                ry = relative_transform[1, -1]
-                rz = relative_transform[2, -1]
-                rquat = R.from_matrix(relative_transform[:3, :3]).as_quat()
-                rqx, rqy, rqz, rqw = rquat[0], rquat[1], rquat[2], rquat[3]
-
-                self.relative_transform = TransformMatrix(rx, ry, rz, rqx, rqy, rqz, rqw)
-                if self.verbose:
-                    self.get_logger().info("Relative pose...")
-                    self.get_logger().info(f"Translation: {self.relative_transform.translation.vector()}")
-                    self.get_logger().info(f"Rotation: {self.relative_transform.rotation.rph()}\n")
-
-                # Publish transformed message
-                self.odom_publish()
+            # Publish transformed message
+            self.depth_publish()
     
-    def odom_publish(self) -> None:
-        # Create relative pose message
-        pose_msg = PoseWithCovarianceStamped()
+    def depth_publish(self) -> None:
+        # Create depth message
+        depth_msg = PoseWithCovarianceStamped()
         
         # Populate depth message
-        pose_msg.header.frame_id = "base_link"
-        pose_msg.header.stamp = self.pose_stamp
-        pose_msg.pose.pose.position.x = self.relative_transform.translation.x
-        pose_msg.pose.pose.position.y = self.relative_transform.translation.y
-        pose_msg.pose.pose.position.z = self.relative_transform.translation.z
-        pose_msg.pose.pose.orientation.x = self.relative_transform.rotation.x
-        pose_msg.pose.pose.orientation.y = self.relative_transform.rotation.y
-        pose_msg.pose.pose.orientation.z = self.relative_transform.rotation.z
-        pose_msg.pose.pose.orientation.w = self.relative_transform.rotation.w
-        pose_msg.pose.covariance = self.pose_covariance
+        depth_msg.header.frame_id = "base_link"
+        depth_msg.header.stamp = self.depth_stamp
+        depth_msg.pose.pose.position.z = self.depthTransformed.translation.z
+        depth_msg.pose.covariance = self.depth_covariance
 
         # Publish message
-        self.odometry_publisher.publish(pose_msg)
+        self.depth_publisher.publish(depth_msg)
         if self.verbose:
-            self.get_logger().info("Relative pose computed and published...")
+            self.get_logger().info("Depth message transformed and published...")
 
 
 def main(args=None):
     rclpy.init(args=args)
 
-    ins_subscriber = SubPub()
+    depth_subscriber = SubPub()
 
-    rclpy.spin(ins_subscriber)
+    rclpy.spin(depth_subscriber)
 
-    ins_subscriber.destroy_node()
+    depth_subscriber.destroy_node()
     rclpy.shutdown()
 
 

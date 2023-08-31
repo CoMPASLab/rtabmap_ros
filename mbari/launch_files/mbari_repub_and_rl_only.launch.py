@@ -9,7 +9,7 @@ from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
     
-    lcm_to_ros2_dir = get_package_share_directory('lass_lcm_to_ros2')
+    lcm_to_ros2_dir = get_package_share_directory('lass_new_lcm_to_ros2')
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers.launch.py'))
