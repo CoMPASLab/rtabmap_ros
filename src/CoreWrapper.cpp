@@ -31,6 +31,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
 #include <nav_msgs/msg/detail/odometry__struct.hpp>
+#include <opencv2/core/hal/interface.h>
 #include <std_msgs/msg/detail/header__struct.hpp>
 #include <stdio.h>
 #include <tf2/convert.h>
@@ -1988,20 +1989,23 @@ void CoreWrapper::process(
 
             for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
-                Transform totalTransform = Transform::getIdentity();
-				cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
-				for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
-				{
-					const auto & pose = poseMsgMapping.second;
-                const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
-                const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
+                Transform totalTransform;
+                cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
+                for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
+                {
+                    const auto & pose = poseMsgMapping.second;
+                    const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
+                    const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
 
-					totalTransform = totalTransform * transform;
-					totalCovariance = covariance;
+                    totalTransform *= transform;
+                    totalCovariance.diag() += covariance.diag();
+                }
+                if (!totalCovariance.empty())
+                {
+                    data.addArbitraryPoseConstraint({totalTransform, totalCovariance});
+                }
+                additionalGraphLinks_ = newAdditionalGraphLinks;
             }
-				data.addArbitraryPoseConstraint({totalTransform, totalCovariance});
-            additionalGraphLinks_ = newAdditionalGraphLinks;
-        }
         }
 
 		double timeRtabmap = 0.0;
