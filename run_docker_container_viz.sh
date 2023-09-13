@@ -10,7 +10,7 @@ then
 fi
 
 docker run -it \
-    --name ventana_rtabmap_online_viz \
+    --name rtabmap_ros_viz \
     --privileged \
     -e "DISPLAY=$DISPLAY" \
     -e "XAUTHORITY=$XAUTH" \
