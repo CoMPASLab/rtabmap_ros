@@ -12,9 +12,8 @@ RUN apt-get update && \
         ros-galactic-image-proc \
         ros-galactic-robot-localization \
         ros-galactic-octomap-msgs \
-        ros-galactic-pcl-conversions && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
+        ros-galactic-pcl-conversions \
+        ros-galactic-pcl-ros
 
 ENV CMAKE_INSTALL_PREFIX=/usr/local
 ENV DEPS_DIR=/root/deps
