@@ -7,8 +7,10 @@ import math
 
 import rclpy
 import tf2_ros
+import tf2_msgs
+from rclpy.node import Node
 
-from rtabmap_ros.srv import ResetOdometry
+from rtabmap_ros.srv import ResetPose
 
 
 def get_euler_ypr(x: float, y: float, z: float, w: float) -> (float, float, float):
@@ -50,7 +52,7 @@ def get_euler_ypr(x: float, y: float, z: float, w: float) -> (float, float, floa
     return yaw, pitch, roll
 
 
-class ResetOdometryNode(rclpy.Node):
+class ResetOdometryNode(Node):
     """
     Reset Odometry Node
     """
@@ -63,13 +65,17 @@ class ResetOdometryNode(rclpy.Node):
         self.guess_frame_id = self.get_parameter('guess_frame_id').value
         self.frame_id = self.get_parameter('frame_id').value
         
-        # Create the tf buffer
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        # Create the tf subscriber
+        self.create_subscription(
+            tf2_msgs.msg.TFMessage,
+            '/tf',
+            self.tf_callback,
+            1
+        )
         
         # Create the service client
-        self.service_name = '/rtabmap/reset_odometry_to_pose'
-        self.client = self.create_client(ResetOdometry, self.service_name)
+        self.service_name = '/rtabmap/reset_odom_to_pose'
+        self.client = self.create_client(ResetPose, self.service_name)
         
         # Wait for the service to become available
         timeout_sec = 1.0
@@ -78,7 +84,7 @@ class ResetOdometryNode(rclpy.Node):
         self.get_logger().info(f'Service {self.service_name} available')
         
         # Create the request
-        self.req = ResetOdometry.Request()
+        self.req = ResetPose.Request()
     
     def _declare_parameters(self):
         """
@@ -87,16 +93,21 @@ class ResetOdometryNode(rclpy.Node):
         self.declare_parameter('guess_frame_id', rclpy.Parameter.Type.STRING)
         self.declare_parameter('frame_id', rclpy.Parameter.Type.STRING)
     
-    def get_latest_transform(self):
-        try:
-            return self.tf_buffer.lookup_transform(
-                self.frame_id,
-                self.guess_frame_id,
-                rclpy.time.Time()
-            )
-        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
-            self.get_logger().error(f'Failed to get transform from {self.guess_frame_id} to {self.frame_id}')
-            return None
+    def tf_callback(self, msg):
+        """
+        Callback for the tf subscriber.
+        
+        Args:
+            msg: tf message
+        """
+        # Get the latest transform
+        t = msg.transforms[-1]
+        if t.child_frame_id == self.frame_id and t.header.frame_id == self.guess_frame_id:
+            # Reset odometry
+            self.reset_odometry(t)
+            self.get_logger().info(f'Reset odometry')
+            self.destroy_node()
+            raise SystemExit(0)
         
     def reset_odometry(self, t):
         # Construct the request
@@ -117,17 +128,17 @@ class ResetOdometryNode(rclpy.Node):
         
         # Call the service
         self.future = self.client.call_async(self.req)
-        rclpy.spin_until_future_complete(self, self.future)
-        return self.future.result()
 
 
 def main(args=None):
     rclpy.init(args=args)
     
     node = ResetOdometryNode()
-    t = node.get_latest_transform()
-    if t is not None:
-        node.reset_odometry(t)
+
+    try:
+        rclpy.spin(node)
+    except SystemExit:
+        pass
     
     node.destroy_node()
     rclpy.shutdown()
