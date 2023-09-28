@@ -772,6 +772,11 @@ install(PROGRAMS
   DESTINATION lib/${PROJECT_NAME}/
 )
 
+install(PROGRAMS
+  mbari/reset_odometry/reset_odometry
+  DESTINATION lib/${PROJECT_NAME}/
+)
+
 ##
 
 ## install plugins/nodelets xml

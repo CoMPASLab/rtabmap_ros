@@ -1,0 +1,137 @@
+#!/usr/bin/env python3
+"""
+Get the latest transform from "guess_frame_id" to "frame_id" and call the "/rtabmap/reset_odometry_to_pose" service
+"""
+
+import math
+
+import rclpy
+import tf2_ros
+
+from rtabmap_ros.srv import ResetOdometry
+
+
+def get_euler_ypr(x: float, y: float, z: float, w: float) -> (float, float, float):
+    """
+    Get the yaw, pitch, roll from a quaternion.
+    Ported from tf2/include/tf2/impl/utils.h.
+    
+    Args:
+        x: x component of the quaternion
+        y: y component of the quaternion
+        z: z component of the quaternion
+        w: w component of the quaternion
+    
+    Returns:
+        yaw: yaw in radians
+        pitch: pitch in radians
+        roll: roll in radians
+    """
+    sqx = x * x
+    sqy = y * y
+    sqz = z * z
+    sqw = w * w
+
+    sarg = -2 * (x * z - w * y) / (sqx + sqy + sqz + sqw)
+
+    if sarg <= -0.99999:
+        pitch = -0.5 * math.pi
+        roll = 0
+        yaw = -2 * math.atan2(y, x)
+    elif sarg >= 0.99999:
+        pitch = 0.5 * math.pi
+        roll = 0
+        yaw = 2 * math.atan2(y, x)
+    else:
+        pitch = math.asin(sarg)
+        roll = math.atan2(2 * (y * z + w * x), sqw - sqx - sqy + sqz)
+        yaw = math.atan2(2 * (x * y + w * z), sqw + sqx - sqy - sqz)
+    
+    return yaw, pitch, roll
+
+
+class ResetOdometryNode(rclpy.Node):
+    """
+    Reset Odometry Node
+    """
+    
+    def __init__(self):
+        super().__init__('reset_odometry')
+        self._declare_parameters()
+        
+        # Get parameters
+        self.guess_frame_id = self.get_parameter('guess_frame_id').value
+        self.frame_id = self.get_parameter('frame_id').value
+        
+        # Create the tf buffer
+        self.tf_buffer = tf2_ros.Buffer()
+        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
+        
+        # Create the service client
+        self.service_name = '/rtabmap/reset_odometry_to_pose'
+        self.client = self.create_client(ResetOdometry, self.service_name)
+        
+        # Wait for the service to become available
+        timeout_sec = 1.0
+        while not self.client.wait_for_service(timeout_sec=timeout_sec):
+            self.get_logger().info(f'Service {self.service_name} not available, waiting for {timeout_sec} s...')
+        self.get_logger().info(f'Service {self.service_name} available')
+        
+        # Create the request
+        self.req = ResetOdometry.Request()
+    
+    def _declare_parameters(self):
+        """
+        Declare all node parameters.
+        """
+        self.declare_parameter('guess_frame_id', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('frame_id', rclpy.Parameter.Type.STRING)
+    
+    def get_latest_transform(self):
+        try:
+            return self.tf_buffer.lookup_transform(
+                self.frame_id,
+                self.guess_frame_id,
+                rclpy.time.Time()
+            )
+        except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
+            self.get_logger().error(f'Failed to get transform from {self.guess_frame_id} to {self.frame_id}')
+            return None
+        
+    def reset_odometry(self, t):
+        # Construct the request
+        self.req.x = t.transform.translation.x
+        self.req.y = t.transform.translation.y
+        self.req.z = t.transform.translation.z
+        
+        # Convert the quaternion to yaw, pitch, roll
+        yaw, pitch, roll = get_euler_ypr(
+            t.transform.rotation.x,
+            t.transform.rotation.y,
+            t.transform.rotation.z,
+            t.transform.rotation.w
+        )
+        self.req.roll = roll
+        self.req.pitch = pitch
+        self.req.yaw = yaw
+        
+        # Call the service
+        self.future = self.client.call_async(self.req)
+        rclpy.spin_until_future_complete(self, self.future)
+        return self.future.result()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+    
+    node = ResetOdometryNode()
+    t = node.get_latest_transform()
+    if t is not None:
+        node.reset_odometry(t)
+    
+    node.destroy_node()
+    rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()
