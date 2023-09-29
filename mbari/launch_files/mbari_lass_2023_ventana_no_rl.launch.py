@@ -72,7 +72,7 @@ def generate_launch_description():
             Node(
                 package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
                 parameters=[{'odom_subscriber': LaunchConfiguration('odom_subscriber'),
-                             'odometry_publisher': LaunchConfiguration('odometry_filter_output_topic'),
+                             'odometry_filter_output_topic': LaunchConfiguration('odometry_filter_output_topic'),
                              'frame_id': LaunchConfiguration('frame_id'),
                              'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
