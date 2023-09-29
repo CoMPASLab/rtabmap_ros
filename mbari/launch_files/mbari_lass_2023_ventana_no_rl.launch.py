@@ -55,6 +55,9 @@ def generate_launch_description():
             DeclareLaunchArgument('depth_publisher', default_value='/depth/filtered'),
             DeclareLaunchArgument('depth_ned_frame_id', default_value='depth_link_ned'),
 
+            # Odometry filter parameters
+            DeclareLaunchArgument('odom_subscriber', default_value='/converted/ins_odom'),
+
             # Depth constraint specific node
             Node(
                 package='rtabmap_ros', executable='depth_filter', name='depth_filter',
@@ -67,11 +70,14 @@ def generate_launch_description():
             ),
 
             # Odometry relative constraint specific node
-            # Note: This node MUST start before the static transform nodes, therefore must be on top.
-            # Node(
-            #     package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
-            #     namespace=LaunchConfiguration('namespace')
-            # ),
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                parameters=[{'odom_subscriber': LaunchConfiguration('odom_subscriber'),
+                             'odometry_publisher': LaunchConfiguration('odometry_filter_output_topic'),
+                             'frame_id': LaunchConfiguration('frame_id'),
+                             'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
 
             # DVL
             Node(
