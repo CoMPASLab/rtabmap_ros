@@ -92,8 +92,6 @@ class SubPub(Node):
         # Publish message
         self.odometry_publisher.publish(pose_msg)
 
-        self.get_logger().info("Relative pose computed and published...")
-
 
 def main(args=None):
     rclpy.init(args=args)

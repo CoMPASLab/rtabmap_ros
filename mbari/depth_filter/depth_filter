@@ -102,7 +102,6 @@ class SubPub(Node):
 
         # Publish message
         self.depth_publisher.publish(depth_msg)
-        print("Depth: ", self.depth_frd)
 
 
 def main(args=None):
