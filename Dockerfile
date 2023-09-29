@@ -8,12 +8,18 @@ RUN apt-get update && \
         libboost-all-dev \
         libpcl-dev \
         libglib2.0-dev \
+        libyaml-cpp-dev \
         ros-galactic-navigation2 \
         ros-galactic-image-proc \
         ros-galactic-robot-localization \
         ros-galactic-octomap-msgs \
         ros-galactic-pcl-conversions \
-        ros-galactic-pcl-ros
+        ros-galactic-pcl-ros \
+        ros-galactic-vision-msgs \
+        ros-galactic-ament-cmake-clang-format \
+        ros-galactic-rviz2 \
+        python3-pip \
+        python3-pcl
 
 ENV CMAKE_INSTALL_PREFIX=/usr/local
 ENV DEPS_DIR=/root/deps
@@ -113,6 +119,30 @@ WORKDIR /root/rtabmap_ws/src
 
 ARG READ_TOKEN
 
+# Clone and build offline registration testing (main branch)
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/offline_registration_testing.git -b main
+
+# Clone OUXT-Polaris/ouxt_common (master branch)
+RUN git clone https://github.com/OUXT-Polaris/ouxt_common.git -b master
+
+# Clone OUXT-Polaris/color_names (master branch)
+RUN git clone https://github.com/OUXT-Polaris/color_names.git -b master
+
+# Clone OUXT-Polaris/perception_msgs (master branch)
+RUN git clone https://github.com/OUXT-Polaris/perception_msgs.git -b master
+
+# Clone OUXT-Polaris/message_synchronizer (master branch)
+RUN git clone https://github.com/OUXT-Polaris/message_synchronizer.git -b master
+
+# Clone ndt_omp (tier4/main) branch)
+RUN git clone https://github.com/tier4/ndt_omp.git -b tier4/main
+
+# Clone point_cloud_accumulator (main branch)
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/point_cloud_accumulator.git -b main
+
+# Clone pcl_apps (master branch)
+RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/pcl_apps.git -b master
+
 # Clone rtabmap (develop branch)
 RUN git clone https://oauth2:${READ_TOKEN}@gitlab.gimrobotics.fi/mbari/rtabmap.git -b develop
 
@@ -128,6 +158,10 @@ RUN ldconfig && \
     . /opt/ros/galactic/setup.sh && \
     export MAKEFLAGS="-j${NUM_THREADS}" && \
     colcon build --symlink-install
+
+# Install python dependencies
+RUN pip3 install rosbags open3d && \
+    pip3 install --upgrade numpy
 
 # Create the RTAB-Map output directory
 RUN mkdir /root/rtab_out
