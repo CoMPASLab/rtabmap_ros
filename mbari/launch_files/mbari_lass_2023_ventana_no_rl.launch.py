@@ -102,7 +102,7 @@ def generate_launch_description():
             # Kearfott Depth
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0', '0', '0', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd'],
+                arguments=['0.1356', '-0.1994', '0.0697', '0', '0', '0', '1', 'base_link_frd', 'depth_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -124,7 +124,7 @@ def generate_launch_description():
             # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
-                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd' ],
+                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', LaunchConfiguration('frame_id'), 'base_link_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -132,7 +132,7 @@ def generate_launch_description():
             # NED to ENU
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='world_enu_to_ned_link_publisher',
-                arguments=['0.0', '0.0', '0.0', '0.70710678', '0.70710678', '0', '0', 'world', 'world_ned' ],
+                arguments=['0.0', '0.0', '0.0', '0.70710678', '0.70710678', '0', '0', 'world', 'world_ned'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -140,5 +140,13 @@ def generate_launch_description():
             lcm_to_ros2_launch,
             # robot_localization_launch,
             stereo_proc_launch,
-            rtabmap_ros_launch
+            rtabmap_ros_launch,
+
+            # RTAB-Map pose reset service
+            Node(
+                package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
+                parameters=[{'frame_id': LaunchConfiguration('frame_id'),
+                             'guess_frame_id': LaunchConfiguration('odom_guess_frame_id')}],
+                namespace=LaunchConfiguration('namespace')
+            ),
     ])
