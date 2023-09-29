@@ -1,17 +1,128 @@
 #!/usr/bin/env python3
 
-import rclpy
-from rclpy.node import Node
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
-from geometry_msgs.msg import PoseWithCovarianceStamped
-from scipy.spatial.transform import Rotation as R
-
-import tf2_ros
-import tf2_msgs.msg
-
-import numpy as np
 from dataclasses import dataclass
 from typing import List
+
+import numpy as np
+import rclpy
+import tf2_msgs.msg
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from scipy.spatial.transform import Rotation as R
+
+
+class SubPub(Node):
+
+    def __init__(self):
+        super().__init__('depth_subscriber')
+
+        # Declare parameters
+        self._declare_parameters()
+
+        # Get parameters
+        self.depth_subscriber = self.get_parameter('depth_subscriber').value
+        self.depth_publisher = self.get_parameter('depth_publisher').value
+        self.depth_ned_frame_id = self.get_parameter('depth_ned_frame_id').value
+        self.depth_frd_frame_id = self.get_parameter('depth_frd_frame_id').value
+        self.base_link_frame_id = self.get_parameter('base_link_frame_id').value
+        
+        # Initialize transform matrices
+        self.static_transforms = dict()
+        self.transform = None
+
+        # Create a subscriber for the static transform
+        self.static_transform_subscriber = self.create_subscription(
+            tf2_msgs.msg.TFMessage,
+            '/tf_static',
+            self.static_transform_callback,
+            QoSProfile(depth=10)
+        )
+
+        # Create a subscriber for the depth
+        self.depth_subscriber = self.create_subscription(
+            PoseWithCovarianceStamped,
+            self.depth_subscriber,
+            self.depth_callback,
+            QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
+                       history=QoSHistoryPolicy.KEEP_LAST,
+                       depth=10)
+        )
+
+        # Create a publisher for the transformed depth
+        self.depth_publisher = self.create_publisher(
+            PoseWithCovarianceStamped,
+            self.depth_publisher,
+            QoSProfile(depth=10))
+
+    def _declare_parameters(self):
+        """
+        Declare parameters for the node
+        """
+        self.declare_parameter('depth_subscriber', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('depth_publisher', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('depth_ned_frame_id', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('depth_frd_frame_id', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('base_link_frame_id', rclpy.Parameter.Type.STRING)
+
+    def static_transform_callback(self, msg) -> None:
+        """
+        Callback function for the static transform subscriber
+        """
+        # Process the received static transform
+        for transform_stamped in msg.transforms:
+
+            # If the transform is not in the dictionary, add it
+            if transform_stamped.header.frame_id not in self.static_transforms.keys():
+                self.static_transforms[transform_stamped.header.frame_id] = dict()
+
+            # Parse rotation and translation components
+            translation = transform_stamped.transform.translation
+            rotation = transform_stamped.transform.rotation
+            x, y, z = translation.x, translation.y, translation.z
+            qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
+            transform = TransformMatrix(x, y, z, qx, qy, qz, qw)
+
+            # Create transformation matrix from TransformMatrix class
+            self.static_transforms[transform_stamped.header.frame_id][transform_stamped.child_frame_id] = transform
+
+        if self.depth_frd_frame_id in self.static_transforms:
+            if self.depth_ned_frame_id in self.static_transforms[self.depth_frd_frame_id]:
+                self.transform = self.static_transforms[self.depth_frd_frame_id][self.depth_ned_frame_id].transformation
+
+    def depth_callback(self, msg) -> None:
+        """
+        Callback function for the depth subscriber
+        """
+        # Process the received depth
+        self.depthTransform = TransformMatrix(0.0, 0.0, msg.pose.pose.position.z, 0.0, 0.0, 0.0, 1.0)
+        self.depth_covariance = msg.pose.covariance
+        self.depth_stamp = msg.header.stamp
+
+        if self.transform is not None:
+            # Transform depth from depth_base_link_abs_frd to base_link
+            self.depth_frd = (self.transform @ self.depthTransform.transformation)[2, -1]
+
+            # Publish transformed message
+            self.depth_publish()
+
+    def depth_publish(self) -> None:
+        """
+        Publish the transformed depth
+        """
+        # Create depth message
+        depth_msg = PoseWithCovarianceStamped()
+
+        # Populate depth message
+        depth_msg.header.frame_id = self.base_link_frame_id
+        depth_msg.header.stamp = self.depth_stamp
+        depth_msg.pose.pose.position.z = self.depth_frd
+        depth_msg.pose.covariance = self.depth_covariance
+
+        # Publish message
+        self.depth_publisher.publish(depth_msg)
+        print("Depth: ", self.depth_frd)
+
 
 @dataclass
 class vector:
@@ -51,13 +162,13 @@ class quaternion:
     y: float
     z: float
     w: float
-    
+
     def rph(self) -> np.ndarray:
         return R.from_quat([self.x, self.y, self.z, self.w]).as_euler("ZYX").flatten()[::-1]
-    
+
     def rot_mat(self) -> np.ndarray:
         return R.from_quat([self.x, self.y, self.z, self.w]).as_matrix()
-    
+
     def quaternion(self) -> np.ndarray:
         return np.array([self.x, self.y, self.z, self.w])
 
@@ -80,222 +191,19 @@ class TransformMatrix:
     def translation(self) -> vector:
         """Translation component of transformation matrix"""
         return self._translation
-    
+
     @translation.setter
     def translation(self, value: List[float]) -> None:
         self._translation = vector(value[0], value[1], value[2])
-    
+
     @property
     def rotation(self) -> quaternion:
         """Translation component of transformation matrix"""
         return self._rotation
-    
+
     @rotation.setter
     def rotation(self, value: List[float]) -> None:
         self._rotation = quaternion(value[0], value[1], value[2], value[3])
-
-
-class SubPub(Node):
-
-    def __init__(self):
-        super().__init__('depth_subscriber')
-
-        # Verbose for debugging
-        self.verbose = False
-        
-        # Initialize transform matrices
-        self.transform_00 = None
-        self.transform_01 = None
-        self.transform_02 = None
-        self.full_transformation_inv = None
-
-        # Original depth memory
-        self.original_depth = None
-
-        # Common depth messages attributes
-        self.depth_stamp = None
-        self.depth_covariance = None
-
-        # Create a transform listener
-        self.tf_buffer = tf2_ros.Buffer()
-        self.tf_listener = tf2_ros.TransformListener(self.tf_buffer, self)
-
-        # Create a subscriber for the static transform
-        self.static_transform_subscriber = self.create_subscription(
-            tf2_msgs.msg.TFMessage,
-            '/tf_static',
-            self.static_transform_callback,
-            QoSProfile(depth=10)
-        )
-
-        # Create a subscriber for the depth
-        self.depth_subscriber = self.create_subscription(
-            PoseWithCovarianceStamped,
-            '/converted/depth',
-            self.depth_callback,
-            QoSProfile( reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10)
-        )
-
-        # Create a publisher for the transformed depth
-        self.depth_publisher = self.create_publisher(
-            PoseWithCovarianceStamped,
-            '/depth/filtered',
-            QoSProfile(depth=10))
-
-    def get_transform(self) -> None:
-        if self.transform_00 is not None \
-        and self.transform_01 is not None \
-        and self.transform_02 is not None:
-            # Compute transformation from base_link to depth_link_abs_frd
-            full_transformation = self.transform_00.transformation @\
-            self.transform_01.transformation @\
-            self.transform_02.transformation
-
-            # Compute transformation from depth_link_abs_frd to base_link
-            full_transformation_inv = np.linalg.inv(full_transformation)
-
-            # Parse components
-            x = full_transformation_inv[0, -1]
-            y = full_transformation_inv[1, -1]
-            z = full_transformation_inv[2, -1]
-            quat = R.from_matrix(full_transformation_inv[:3, :3]).as_quat()
-            qx, qy, qz, qw = quat[0], quat[1], quat[2], quat[3]
-
-            # Create transformation matrix from TransformMatrix class
-            self.full_transformation_inv = TransformMatrix(x, y, z, qx, qy, qz, qw)
-            if self.verbose:
-                self.get_logger().info("Full transform computed...")
-                self.get_logger().info("Frame ID: base_link")
-                self.get_logger().info("Child frame ID: depth_link_abs_frd")
-                self.get_logger().info(f"Translation: {self.full_transformation_inv.translation.vector()}")
-                self.get_logger().info(f"Rotation: {self.full_transformation_inv.rotation.rph()}\n")
-
-    def static_transform_callback(self, msg) -> None:
-        # Process the received static transform
-        for transform_stamped in msg.transforms:
-            
-            # Transform from absolute to local depth link
-            if transform_stamped.header.frame_id == "depth_link_frd":
-
-                # Parse rotation and translation components
-                translation = transform_stamped.transform.translation
-                rotation = transform_stamped.transform.rotation
-                x, y, z = translation.x, translation.y, translation.z
-                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
-
-                # Create transformation matrix from TransformMatrix class
-                self.transform_00 = TransformMatrix(x, y, z, qx, qy, qz, qw)
-                
-                # Report frame
-                if self.verbose:
-                    self.get_logger().info("Depth transform 00 received...")
-                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
-                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
-                    self.get_logger().info(f"Translation: {self.transform_00.translation.vector()}")
-                    self.get_logger().info(f"Rotation: {self.transform_00.rotation.rph()}\n")
-            
-            # Transform from local depth link to base link
-            elif transform_stamped.header.frame_id == "base_link_frd" \
-                and transform_stamped.child_frame_id == "depth_link_frd":
-                
-                # Parse rotation and translation components
-                translation = transform_stamped.transform.translation
-                rotation = transform_stamped.transform.rotation
-                x, y, z = translation.x, translation.y, translation.z
-                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
-
-                # Create transformation matrix from TransformMatrix class
-                self.transform_01 = TransformMatrix(x, y, z, qx, qy, qz, qw)
-                
-                # Report frame
-                if self.verbose:
-                    self.get_logger().info("Depth transform 01 received...")
-                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
-                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
-                    self.get_logger().info(f"Translation: {self.transform_01.translation.vector()}")
-                    self.get_logger().info(f"Rotation: {self.transform_01.rotation.rph()}\n")
-            
-            # Transfrom from base link FRD to base link FLU
-            elif transform_stamped.header.frame_id == "base_link" \
-                and transform_stamped.child_frame_id == "base_link_frd":
-                
-                # Parse rotation and translation components
-                translation = transform_stamped.transform.translation
-                rotation = transform_stamped.transform.rotation
-                x, y, z = translation.x, translation.y, translation.z
-                qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
-
-                # Create transformation matrix from TransformMatrix class
-                self.transform_02 = TransformMatrix(x, y, z, qx, qy, qz, qw)
-                
-                # Report frame
-                if self.verbose:
-                    self.get_logger().info("Depth transform 02 received...")
-                    self.get_logger().info(f"Frame ID: {transform_stamped.header.frame_id}")
-                    self.get_logger().info(f"Child frame ID: {transform_stamped.child_frame_id}")
-                    self.get_logger().info(f"Translation: {self.transform_02.translation.vector()}")
-                    self.get_logger().info(f"Rotation: {self.transform_02.rotation.rph()}\n")
-
-            if self.verbose:
-                self.get_logger().info(f"Transform 00: {self.transform_00}")
-                self.get_logger().info(f"Transform 01: {self.transform_01}")
-                self.get_logger().info(f"Transform 02: {self.transform_02}\n")
-
-            if self.full_transformation_inv is None:
-                self.get_transform()
-
-            
-    def depth_callback(self, msg) -> None:
-        # Process the received depth
-        if self.original_depth is None:
-            self.original_depth = msg.pose.pose.position.z
-        if self.verbose:
-            self.get_logger().info(f"Original depth: {self.original_depth:.4f} m\n")
-            self.get_logger().info(f"Received depth: {msg.pose.pose.position.z:.4f} m\n")
-        self.depthTransform = TransformMatrix(0.0, 0.0, msg.pose.pose.position.z, 0.0, 0.0, 0.0, 1.0)
-        self.depth_covariance = msg.pose.covariance
-        self.depth_stamp = msg.header.stamp
-
-        if self.full_transformation_inv is not None:
-            # Transform depth from depth_base_link_abs_frd to base_link
-            depth_transformed = self.full_transformation_inv.transformation @ self.depthTransform.transformation
-
-            # Parse components
-            x = depth_transformed[0, -1]
-            y = depth_transformed[1, -1]
-            z = depth_transformed[2, -1]
-            quat = R.from_matrix(depth_transformed[:3, :3]).as_quat()
-            qx, qy, qz, qw = quat[0], quat[1], quat[2], quat[3]
-
-            # Save transformed depth
-            self.depthTransformed = TransformMatrix(x, y, z, qx, qy, qz, qw)
-
-            if self.verbose:
-                self.get_logger().info("Depth transformed computed...")
-                self.get_logger().info(f"Frame ID: base_link")
-                self.get_logger().info(f"Translation: {self.depthTransformed.translation.vector()}")
-                self.get_logger().info(f"Rotation: {self.depthTransformed.rotation.rph()}\n")
-
-            # Publish transformed message
-            self.depth_publish()
-    
-    def depth_publish(self) -> None:
-        # Create depth message
-        depth_msg = PoseWithCovarianceStamped()
-        
-        # Populate depth message
-        depth_msg.header.frame_id = "base_link"
-        depth_msg.header.stamp = self.depth_stamp
-        depth_msg.pose.pose.position.z = self.depthTransformed.translation.z
-        depth_msg.pose.covariance = self.depth_covariance
-
-        # Publish message
-        self.depth_publisher.publish(depth_msg)
-        if self.verbose:
-            self.get_logger().info("Depth message transformed and published...")
-
 
 def main(args=None):
     rclpy.init(args=args)
