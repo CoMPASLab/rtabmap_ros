@@ -52,10 +52,8 @@ def generate_launch_description():
 
             # Depth filter parameters
             DeclareLaunchArgument('depth_subscriber', default_value='/converted/depth_kearfott'),
-            DeclareLaunchArgument('depth_publisher', default_value='/depth/filtered'),  
+            DeclareLaunchArgument('depth_publisher', default_value='/depth/filtered'),
             DeclareLaunchArgument('depth_ned_frame_id', default_value='depth_link_ned'),
-            DeclareLaunchArgument('depth_frd_frame_id', default_value='depth_link_frd'),
-            DeclareLaunchArgument('base_link_frame_id', default_value='base_link_ins'),
 
             # Depth constraint specific node
             Node(
@@ -63,8 +61,8 @@ def generate_launch_description():
                 parameters=[{'depth_subscriber': LaunchConfiguration('depth_subscriber'),
                              'depth_publisher': LaunchConfiguration('absolute_depth_topic'),
                              'depth_ned_frame_id': LaunchConfiguration('depth_ned_frame_id'),
-                             'depth_frd_frame_id': LaunchConfiguration('depth_frd_frame_id'),
-                             'base_link_frame_id': LaunchConfiguration('frame_id')}],
+                             'base_link_frame_id': LaunchConfiguration('frame_id'),
+                             'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
 

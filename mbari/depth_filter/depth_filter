@@ -1,11 +1,8 @@
 #!/usr/bin/env python3
 
-from dataclasses import dataclass
-from typing import List
-
 import numpy as np
 import rclpy
-import tf2_msgs.msg
+import tf2_ros
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
@@ -24,20 +21,10 @@ class SubPub(Node):
         self.depth_subscriber = self.get_parameter('depth_subscriber').value
         self.depth_publisher = self.get_parameter('depth_publisher').value
         self.depth_ned_frame_id = self.get_parameter('depth_ned_frame_id').value
-        self.depth_frd_frame_id = self.get_parameter('depth_frd_frame_id').value
         self.base_link_frame_id = self.get_parameter('base_link_frame_id').value
-        
-        # Initialize transform matrices
-        self.static_transforms = dict()
-        self.transform = None
 
-        # Create a subscriber for the static transform
-        self.static_transform_subscriber = self.create_subscription(
-            tf2_msgs.msg.TFMessage,
-            '/tf_static',
-            self.static_transform_callback,
-            QoSProfile(depth=10)
-        )
+        # Initialize transform matrices
+        self.transform = None
 
         # Create a subscriber for the depth
         self.depth_subscriber = self.create_subscription(
@@ -46,14 +33,18 @@ class SubPub(Node):
             self.depth_callback,
             QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT,
                        history=QoSHistoryPolicy.KEEP_LAST,
-                       depth=10)
+                       depth=1)
         )
 
         # Create a publisher for the transformed depth
         self.depth_publisher = self.create_publisher(
             PoseWithCovarianceStamped,
             self.depth_publisher,
-            QoSProfile(depth=10))
+            QoSProfile(depth=1))
+
+        # Create tf buffer and listener
+        self._tf_buffer = tf2_ros.buffer.Buffer()
+        self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, self)
 
     def _declare_parameters(self):
         """
@@ -62,46 +53,36 @@ class SubPub(Node):
         self.declare_parameter('depth_subscriber', rclpy.Parameter.Type.STRING)
         self.declare_parameter('depth_publisher', rclpy.Parameter.Type.STRING)
         self.declare_parameter('depth_ned_frame_id', rclpy.Parameter.Type.STRING)
-        self.declare_parameter('depth_frd_frame_id', rclpy.Parameter.Type.STRING)
         self.declare_parameter('base_link_frame_id', rclpy.Parameter.Type.STRING)
-
-    def static_transform_callback(self, msg) -> None:
-        """
-        Callback function for the static transform subscriber
-        """
-        # Process the received static transform
-        for transform_stamped in msg.transforms:
-
-            # If the transform is not in the dictionary, add it
-            if transform_stamped.header.frame_id not in self.static_transforms.keys():
-                self.static_transforms[transform_stamped.header.frame_id] = dict()
-
-            # Parse rotation and translation components
-            translation = transform_stamped.transform.translation
-            rotation = transform_stamped.transform.rotation
-            x, y, z = translation.x, translation.y, translation.z
-            qx, qy, qz, qw = rotation.x, rotation.y, rotation.z, rotation.w
-            transform = TransformMatrix(x, y, z, qx, qy, qz, qw)
-
-            # Create transformation matrix from TransformMatrix class
-            self.static_transforms[transform_stamped.header.frame_id][transform_stamped.child_frame_id] = transform
-
-        if self.depth_frd_frame_id in self.static_transforms:
-            if self.depth_ned_frame_id in self.static_transforms[self.depth_frd_frame_id]:
-                self.transform = self.static_transforms[self.depth_frd_frame_id][self.depth_ned_frame_id].transformation
 
     def depth_callback(self, msg) -> None:
         """
         Callback function for the depth subscriber
         """
         # Process the received depth
-        self.depthTransform = TransformMatrix(0.0, 0.0, msg.pose.pose.position.z, 0.0, 0.0, 0.0, 1.0)
+        self.depth_transform = np.eye(4)
+        self.depth_transform[2, -1] = msg.pose.pose.position.z
         self.depth_covariance = msg.pose.covariance
         self.depth_stamp = msg.header.stamp
 
-        if self.transform is not None:
+        # Lookup transform from base_link to depth_link
+        if self.transform is None:
+            try:
+                t = self._tf_buffer.lookup_transform(self.base_link_frame_id,
+                                                     self.depth_ned_frame_id,
+                                                     self.depth_stamp).transform
+                rotation = R.from_quat([t.rotation.x, t.rotation.y, t.rotation.z, t.rotation.w])
+                self.transform = np.eye(4)
+                self.transform[:3, :3] = rotation.as_matrix()
+                self.transform[:3, -1] = np.array([t.translation.x, t.translation.y, t.translation.z])
+                self.transform = np.linalg.inv(self.transform)
+
+            except tf2_ros.TransformException as ex:
+                self.get_logger().info(f'Could not transform depth to base_link: {ex}')
+
+        else:
             # Transform depth from depth_base_link_abs_frd to base_link
-            self.depth_frd = (self.transform @ self.depthTransform.transformation)[2, -1]
+            self.depth_frd = (self.transform @ self.depth_transform)[2, -1]
 
             # Publish transformed message
             self.depth_publish()
@@ -122,88 +103,6 @@ class SubPub(Node):
         # Publish message
         self.depth_publisher.publish(depth_msg)
         print("Depth: ", self.depth_frd)
-
-
-@dataclass
-class vector:
-    """
-    Vector structure
-
-    x: float
-        x component.
-    y: float
-        y component.
-    z: float
-        z component.
-    """
-    x: float
-    y: float
-    z: float
-
-    def vector(self) -> np.ndarray:
-        return np.array([self.x, self.y, self.z])
-
-
-@dataclass
-class quaternion:
-    """
-    Quaternion structure
-
-    x: float
-        x component.
-    y: float
-        y component.
-    z: float
-        z component.
-    w: float
-        w component.
-    """
-    x: float
-    y: float
-    z: float
-    w: float
-
-    def rph(self) -> np.ndarray:
-        return R.from_quat([self.x, self.y, self.z, self.w]).as_euler("ZYX").flatten()[::-1]
-
-    def rot_mat(self) -> np.ndarray:
-        return R.from_quat([self.x, self.y, self.z, self.w]).as_matrix()
-
-    def quaternion(self) -> np.ndarray:
-        return np.array([self.x, self.y, self.z, self.w])
-
-
-class TransformMatrix:
-
-    def __init__(self, x: float, y: float, z: float, qx: float, qy: float, qz: float, qw: float) -> None:
-        self.translation = [x, y, z]
-        self.rotation = [qx, qy, qz, qw]
-
-    @property
-    def transformation(self) -> np.ndarray:
-        """Transformation matrix"""
-        t = np.eye(4)
-        t[:3, :3] = self._rotation.rot_mat()
-        t[:3, -1] = self._translation.vector()
-        return t
-
-    @property
-    def translation(self) -> vector:
-        """Translation component of transformation matrix"""
-        return self._translation
-
-    @translation.setter
-    def translation(self, value: List[float]) -> None:
-        self._translation = vector(value[0], value[1], value[2])
-
-    @property
-    def rotation(self) -> quaternion:
-        """Translation component of transformation matrix"""
-        return self._rotation
-
-    @rotation.setter
-    def rotation(self, value: List[float]) -> None:
-        self._rotation = quaternion(value[0], value[1], value[2], value[3])
 
 
 def main(args=None):
