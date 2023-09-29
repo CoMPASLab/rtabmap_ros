@@ -46,8 +46,7 @@ def generate_launch_description():
 
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
             DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
-            # DeclareLaunchArgument('odom_topic', default_value='/odometry/filtered', description=''),
-            DeclareLaunchArgument('qos_odom', default_value='1', description=''),
+            DeclareLaunchArgument('qos_odom', default_value='2', description=''),
             DeclareLaunchArgument('odom_guess_frame_id', default_value='ekf_odom', description=''),
 
             # Depth filter parameters
