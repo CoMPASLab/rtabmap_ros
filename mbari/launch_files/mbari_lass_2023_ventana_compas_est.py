@@ -18,10 +18,10 @@ def generate_launch_description():
     rtabmap_ros_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_rtabmap_ros.launch.py'))
 
     left_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_left.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_left.yaml'
     )
     right_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_right.yaml'
     )
 
     return LaunchDescription([
@@ -33,7 +33,7 @@ def generate_launch_description():
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 7 --Vis/FeatureType 7 --Rtabmap/LoopThr 0.06 --Rtabmap/LoopAdditionalRegistrations 5', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
-            DeclareLaunchArgument('frame_id', default_value='base_link_ins', description='Base link TF frame ID'),
+            DeclareLaunchArgument('frame_id', default_value='base_link_compas', description='Base link TF frame ID'),
 
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
             DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
@@ -46,7 +46,7 @@ def generate_launch_description():
             DeclareLaunchArgument('depth_ned_frame_id', default_value='depth_link_ned'),
 
             # Odometry filter parameters
-            DeclareLaunchArgument('odom_subscriber', default_value='/converted/ins_odom'),
+            DeclareLaunchArgument('odom_subscriber', default_value='/converted/compas_odom'),
 
             # Depth constraint specific node
             Node(
@@ -101,7 +101,7 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # PROSILICA 2020
+            # PROSILICA 2022
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
                 arguments=['0.4552', '-0.46535', '0.096', '3.21355726e-05', '1.17229573e-04', '7.06816690e-01', '7.07396742e-01', 'base_link_frd', 'stereo_camera_left_frd' ],
