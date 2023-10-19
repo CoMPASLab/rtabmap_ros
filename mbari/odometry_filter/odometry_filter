@@ -2,6 +2,7 @@
 
 import numpy as np
 import rclpy
+import signal
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from nav_msgs.msg import Odometry
 from rclpy.node import Node
@@ -39,6 +40,9 @@ class SubPub(Node):
             PoseWithCovarianceStamped,
             self.odometry_filter_output_topic,
             QoSProfile(depth=10))
+
+        # Register signal handler for SIGINT
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def _declare_parameters(self):
         """
@@ -92,6 +96,14 @@ class SubPub(Node):
         # Publish message
         self.odometry_publisher.publish(pose_msg)
 
+    def signal_handler(self, sig, frame) -> None:
+        """
+        Signal handler for SIGINT
+        """
+        self.get_logger().info('Shutting down odometry_filter node...')
+        self.destroy_node()
+        rclpy.shutdown()
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -99,9 +111,6 @@ def main(args=None):
     ins_subscriber = SubPub()
 
     rclpy.spin(ins_subscriber)
-
-    ins_subscriber.destroy_node()
-    rclpy.shutdown()
 
 
 if __name__ == '__main__':

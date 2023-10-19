@@ -2,6 +2,7 @@
 
 import numpy as np
 import rclpy
+import signal
 import tf2_ros
 from geometry_msgs.msg import PoseWithCovarianceStamped
 from rclpy.node import Node
@@ -45,6 +46,9 @@ class SubPub(Node):
         # Create tf buffer and listener
         self._tf_buffer = tf2_ros.buffer.Buffer()
         self._tf_listener = tf2_ros.transform_listener.TransformListener(self._tf_buffer, self)
+
+        # Register signal handler for SIGINT
+        signal.signal(signal.SIGINT, self.signal_handler)
 
     def _declare_parameters(self):
         """
@@ -103,6 +107,14 @@ class SubPub(Node):
         # Publish message
         self.depth_publisher.publish(depth_msg)
 
+    def signal_handler(self, sig, frame) -> None:
+        """
+        Signal handler for SIGINT
+        """
+        self.get_logger().info('Shutting down depth_filter node...')
+        self.destroy_node()
+        rclpy.shutdown()
+
 
 def main(args=None):
     rclpy.init(args=args)
@@ -110,9 +122,6 @@ def main(args=None):
     depth_subscriber = SubPub()
 
     rclpy.spin(depth_subscriber)
-
-    depth_subscriber.destroy_node()
-    rclpy.shutdown()
 
 
 if __name__ == '__main__':
