@@ -1935,37 +1935,83 @@ void CoreWrapper::process(
 		// Absolute depths
 		if(!absoluteDepths_.empty())
 		{
-	        std::map<double, std::pair<float, cv::Mat>> newAbsoluteDepths;
-            double depthTimestamp = absoluteDepths_.begin()->first;
-            float depthValue = absoluteDepths_.begin()->second.first;
-            double poseTimestamp = stamp.nanoseconds() * 1e-9;
-            bool addRest = false;
-            for (const auto& depth : absoluteDepths_) {
-                if (addRest) {
-                    newAbsoluteDepths[depth.first] = depth.second;
-                }
-                else if (depth.first > poseTimestamp) 
-                {
-                    // Interpolate depth between timestamps
-                    double interpolation = (poseTimestamp - depthTimestamp) / (depth.first - depthTimestamp); 
-                    depthValue = depthValue + (depth.second.first - depthValue) * interpolation;
-                    newAbsoluteDepths[depth.first] = depth.second;
-                    addRest = true;
-                }
-                else
-                {
-                    depthTimestamp = depth.first;
-                    depthValue = depth.second.first;
-                }
-            }
+	        // Create temporary vector to store the filtered depth measurements
+			std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAbsoluteDepths;
 
-            rtabmap::Transform baseToDepthTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+			// Get the timestamp of the camera pose
+			double poseTimestamp = stamp.nanoseconds() * 1e-9;
 
-            if(!baseToDepthTransform.isNull())
-            {
-                data.setAbsoluteDepth({depthValue, newAbsoluteDepths.begin()->second.second, baseToDepthTransform});
-                absoluteDepths_ = newAbsoluteDepths;
-            }
+			// Check if the last timestamp of the map is higher or equal to the timestamp of the camera pose
+			auto& lastDepthMeasurement = absoluteDepths_.back();
+			double lastDepthTimestamp = lastDepthMeasurement.header.stamp.sec + lastDepthMeasurement.header.stamp.nanosec * 1e-9;
+
+			// Flag to add all the remaining depth measurements to the temporary map
+			bool addRest = false;
+
+			if (lastDepthTimestamp >= poseTimestamp)
+			{
+				// Initialize the depth timestamp, value, frame id and covariance with the first message in the queue
+				auto& firstDepthMeasurement = absoluteDepths_.front();
+				double depthTimestamp = firstDepthMeasurement.header.stamp.sec + firstDepthMeasurement.header.stamp.nanosec * 1e-9;
+				float depthValue = firstDepthMeasurement.pose.pose.position.z;
+				cv::Mat depthCovarianceMatrix = cv::Mat(6, 6, CV_64FC1, (void*)firstDepthMeasurement.pose.covariance.data()).clone();
+				std::string depthFrameId_ = firstDepthMeasurement.header.frame_id;
+
+				// Iterate through the depth measurements
+				for (const auto& depthMsg : absoluteDepths_) {
+					// Get the timestamp and depth value
+					double currentDepthTimestamp = depthMsg.header.stamp.sec + depthMsg.header.stamp.nanosec * 1e-9;
+					float currentDepthValue = depthMsg.pose.pose.position.z;
+
+					if (addRest) {
+						// Add the rest of the depth measurements to the temporary map
+						newAbsoluteDepths.push_back(depthMsg);
+					}
+					else if (depthTimestamp > poseTimestamp)
+					{
+						// If is the first depth measurement with timestamp higher than the camera pose timestamp, then
+						// interpolate with the previous depth measurement
+						double interpolation = (poseTimestamp - depthTimestamp) / (currentDepthTimestamp - depthTimestamp);
+						depthValue = depthValue + (currentDepthValue - depthValue) * interpolation;
+						depthCovarianceMatrix = cv::Mat(6, 6, CV_64FC1, (void*)depthMsg.pose.covariance.data()).clone();
+
+						// Add the interpolated depth measurement to the temporary vector
+						newAbsoluteDepths.push_back(depthMsg);
+
+						// Add the rest of the depth measurements to the temporary vector
+						addRest = true;
+					}
+					else
+					{
+						// Update the depth measurement and timestamp for measurements with lower timestamp than the camera
+						// pose timestamp
+						depthTimestamp = depthMsg.header.stamp.sec + depthMsg.header.stamp.nanosec * 1e-9;
+						depthValue = depthMsg.pose.pose.position.z;
+					}
+				}
+
+				rtabmap::Transform baseToDepthTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+
+				if(!baseToDepthTransform.isNull())
+				{
+					// Set the absolute depth attribute of the sensor data using the interpolated measurement
+					data.setAbsoluteDepth({depthValue, depthCovarianceMatrix, baseToDepthTransform});
+					data.setAddAbsoluteDepthConstraint(true);
+				}
+			}
+			else
+			{
+				// If the last depth measurement has timestamp lower than the camera pose timestamp, then we drop all the
+				// measurements with timestamp lower than the camera pose timestamp
+				newAbsoluteDepths.push_back(absoluteDepths_.back());
+
+				// Update absolute depth constraint flag
+				data.setAddAbsoluteDepthConstraint(false);
+
+			}
+			// Update the absolute depth measurements queue with the temporary map. In this way, we drop all the
+			// measurements with timestamp lower than the camera pose timestamp
+			absoluteDepths_ = newAbsoluteDepths;
         }
 
 
@@ -2434,10 +2480,10 @@ void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithC
 {
 	if(!paused_)
 	{
-		cv::Mat depthCovarianceMatrix = cv::Mat(1, 36, CV_64FC1, msg->pose.covariance.data()).clone();
-		absoluteDepths_.insert(std::make_pair(msg->header.stamp.sec + msg->header.stamp.nanosec * 1e-9, std::make_pair(msg->pose.pose.position.z, depthCovarianceMatrix.reshape(0, 6))));
-		depthFrameId_ = msg->header.frame_id;
-        if(absoluteDepths_.size() > 1000)
+		absoluteDepths_.push_back(*msg);
+
+		// Keep only the last 1000 depth measurements in the queue
+		if(absoluteDepths_.size() > 1000)
         {
             absoluteDepths_.erase(absoluteDepths_.begin());
         }
