@@ -42,10 +42,11 @@ def generate_launch_description():
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 8 --Vis/FeatureType 8 --LoopThr 0.04', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
+            DeclareLaunchArgument('frame_id', default_value='base_link_ins', description='Base link TF frame ID'),
 
             # RTAB-Map Odometry Input
             DeclareLaunchArgument('qos_odom', default_value='2', description=''),
-            DeclareLaunchArgument('odom_guess_frame_id', default_value='state_odom', description=''),
+            DeclareLaunchArgument('odom_guess_frame_id', default_value='ins_odom', description=''),
 
             # Additional constraints topics
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
