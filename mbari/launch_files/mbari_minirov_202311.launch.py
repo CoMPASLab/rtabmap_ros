@@ -88,10 +88,10 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Camera extrinsics (left and right cameras) - MANTA_2023_04
+            # Camera extrinsics (left and right cameras) - MANTA_2023_11 (wrt. VN110)
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.591950', '-0.841250', '0.399570', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
+                arguments=['0.0870712', '-0.0500126', '0.1008888', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
