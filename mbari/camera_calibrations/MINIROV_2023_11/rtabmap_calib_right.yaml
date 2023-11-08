@@ -1,0 +1,38 @@
+%YAML:1.0
+---
+camera_name: rtabmap_calib_right
+image_width: 1920
+image_height: 1080
+rate_hz: 5.0
+
+camera_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 815.06300500, 0.0000000000, 956.45993468,
+           0.0000000000, 812.79249162, 495.70396269,
+           0.0000000000, 0.0000000000, 1.0000000000]
+
+distortion_coefficients: !!opencv-matrix
+   rows: 1
+   cols: 8
+   dt: d
+   data: [ 8.77752129e-01, -1.41363914e+00, -6.48928402e-04,  3.91606958e-04,
+          -1.90180344e-01,  1.16995264e+00, -1.28961928e+00, -5.44028528e-01]
+
+distortion_model: rational_polynomial
+rectification_matrix: !!opencv-matrix
+   rows: 3
+   cols: 3
+   dt: d
+   data: [ 0.99778104,  0.04963427, -0.04437841,
+          -0.04974227,  0.99876120, -0.00133209,
+           0.04425732,  0.00353662,  0.99901390 ]
+
+projection_matrix: !!opencv-matrix
+   rows: 3
+   cols: 4
+   dt: d
+   data: [ 805.56845900, 0.0000000000, 1137.5460400,  80.127009100,
+           0.0000000000, 805.56845900, 413.71230300,  0.0000000000,
+           0.0000000000, 0.0000000000, 1.0000000000,  0.0000000000 ]

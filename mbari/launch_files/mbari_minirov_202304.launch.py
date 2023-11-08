@@ -15,7 +15,7 @@ def generate_launch_description():
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     # Launch files
-    lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers_minirov.launch.py'))
+    lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers_minirov_202304.launch.py'))
     stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_stereo_proc_mono.launch.py'))
     rtabmap_ros_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_rtabmap_ros.launch.py'))
 
@@ -42,6 +42,7 @@ def generate_launch_description():
             DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 8 --Vis/FeatureType 8 --LoopThr 0.04', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
+            DeclareLaunchArgument('frame_id', default_value='base_link', description=''),
 
             # RTAB-Map Odometry Input
             DeclareLaunchArgument('qos_odom', default_value='2', description=''),
