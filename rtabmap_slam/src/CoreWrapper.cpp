@@ -2020,7 +2020,7 @@ void CoreWrapper::process(
 					}
 				}
 
-				rtabmap::Transform baseToDepthTransform = getTransform(frameId_, depthFrameId_, timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+				rtabmap::Transform baseToDepthTransform = rtabmap_conversions::getTransform(frameId_, depthFrameId_, rtabmap_conversions::timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
 
 				if(!baseToDepthTransform.isNull())
 				{
@@ -2070,7 +2070,7 @@ void CoreWrapper::process(
                 for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
                 {
                     const auto & pose = poseMsgMapping.second;
-                    const auto & transform = transformFromPoseMsg(pose.pose.pose, true);
+                    const auto & transform = rtabmap_conversions::transformFromPoseMsg(pose.pose.pose, true);
                     const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
 
                     totalTransform *= transform;
