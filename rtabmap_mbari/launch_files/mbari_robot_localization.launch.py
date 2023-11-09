@@ -23,8 +23,8 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
 
-    default_config_path = os.path.join(get_package_share_directory("rtabmap_ros"),
-                                'launch', 'robot_localization_params', 'oi_2020.yaml')
+    default_config_path = os.path.join(get_package_share_directory("rtabmap_mbari"),
+                                'robot_localization_params', 'oi_2020.yaml')
 
     return LaunchDescription([
         DeclareLaunchArgument('use_sim_time', default_value='false'),

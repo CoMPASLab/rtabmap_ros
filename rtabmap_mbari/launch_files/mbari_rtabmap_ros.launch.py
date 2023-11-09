@@ -52,7 +52,7 @@ def launch_setup(context, *args, **kwargs):
     
         # Stereo odometry
         Node(
-            package='rtabmap_ros', executable='stereo_odometry', output="screen",
+            package='rtabmap_odom', executable='stereo_odometry', output="screen",
             parameters=[{
                 "frame_id": LaunchConfiguration('frame_id'),
                 "odom_frame_id": LaunchConfiguration('vo_frame_id'),
@@ -80,7 +80,7 @@ def launch_setup(context, *args, **kwargs):
             namespace=LaunchConfiguration('namespace')),
 
         Node(
-            package='rtabmap_ros', executable='rtabmap', output="screen",
+            package='rtabmap_slam', executable='rtabmap', output="screen",
             parameters=[{
                 "subscribe_stereo": LaunchConfiguration('stereo'),
                 "subscribe_rgb": False,
@@ -121,7 +121,7 @@ def launch_setup(context, *args, **kwargs):
             namespace=LaunchConfiguration('namespace')),
 
         Node(
-            package='rtabmap_ros', executable='rtabmapviz', output='screen',
+            package='rtabmap_viz', executable='rtabmap_viz', output='screen',
             parameters=[{
                 "subscribe_stereo": LaunchConfiguration('stereo'),
                 "subscribe_odom_info": ConditionalBool(True, False, IfCondition(PythonExpression(["'", LaunchConfiguration('visual_odometry'), "' == 'true'"]))._predicate_func(context)).perform(context),
@@ -152,7 +152,7 @@ def launch_setup(context, *args, **kwargs):
             condition=IfCondition(LaunchConfiguration("rviz")),
             arguments=[["-d"], [LaunchConfiguration("rviz_cfg")]]),
         Node(
-            package='rtabmap_ros', executable='point_cloud_xyzrgb', output='screen',
+            package='rtabmap_util', executable='point_cloud_xyzrgb', output='screen',
             condition=IfCondition(LaunchConfiguration("rviz")),
             parameters=[{
                 "decimation": 4,
@@ -171,7 +171,7 @@ def launch_setup(context, *args, **kwargs):
 def generate_launch_description():
     
     config_rviz = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'config', 'rgbd.rviz'
+        get_package_share_directory('rtabmap_launch'), 'launch', 'config', 'rgbd.rviz'
     )
     
     return LaunchDescription([
