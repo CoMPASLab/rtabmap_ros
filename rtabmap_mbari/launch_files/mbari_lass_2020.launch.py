@@ -11,22 +11,21 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
 
     lcm_to_ros2_dir = get_package_share_directory('lass_old_lcm_to_ros2')
-    rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
+    rtabmap_mbari_dir = get_package_share_directory('rtabmap_mbari')
 
     lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers.launch.py'))
-    robot_localization_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_robot_localization.launch.py'))
-    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_stereo_proc.launch.py'))
-    rtabmap_ros_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_rtabmap_ros.launch.py'))
+    robot_localization_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_mbari_dir + '/launch/mbari_robot_localization.launch.py'))
+    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_mbari_dir + '/launch/mbari_stereo_proc.launch.py'))
+    rtabmap_slam_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_mbari_dir + '/launch/mbari_rtabmap_ros.launch.py'))
 
     left_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_left.yaml'
+        get_package_share_directory('rtabmap_mbari'), 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_left.yaml'
     )
     right_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
+        get_package_share_directory('rtabmap_mbari'), 'camera_calibrations', 'PROSILICA_2020', 'rtabmap_calib_right.yaml'
     )
 
-    config_path = os.path.join(get_package_share_directory("rtabmap_ros"), 'launch',
-                               'robot_localization_params', 'oi_2020.yaml')
+    config_path = os.path.join(get_package_share_directory("rtabmap_mbari"), 'robot_localization_params', 'oi_2020.yaml')
 
     return LaunchDescription([
             DeclareLaunchArgument('use_sim_time', default_value='true'),
@@ -100,7 +99,7 @@ def generate_launch_description():
 
             # Odometry filter
             Node(
-                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                package='rtabmap_mbari', executable='odometry_filter', name='odometry_filter',
                 parameters=[{"covariance_factor": LaunchConfiguration('covariance_factor')},
                             {"output_relative_poses": LaunchConfiguration('output_relative_poses')}],
                 remappings=[("/pose/filtered", LaunchConfiguration('odometry_filter_output_topic'))],
@@ -110,5 +109,5 @@ def generate_launch_description():
             lcm_to_ros2_launch,
             robot_localization_launch,
             stereo_proc_launch,
-            rtabmap_ros_launch
+            rtabmap_slam_launch
     ])
