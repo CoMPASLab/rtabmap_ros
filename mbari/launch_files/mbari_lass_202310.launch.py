@@ -15,16 +15,16 @@ def generate_launch_description():
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     # Launch files
-    lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers_minirov_202311.launch.py'))
+    lcm_to_ros2_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(lcm_to_ros2_dir + '/launch/republishers_lass.launch.py'))
     stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_stereo_proc.launch.py'))
     rtabmap_ros_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_rtabmap_ros.launch.py'))
 
     # Camera calibration files
     left_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'MINIROV_2023_11', 'rtabmap_calib_left.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_left.yaml'
     )
     right_calib_path = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'MINIROV_2023_11', 'rtabmap_calib_right.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_right.yaml'
     )
 
     return LaunchDescription([
@@ -39,7 +39,7 @@ def generate_launch_description():
             # RTAB-Map arguments
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 0 --Vis/FeatureType 0 --Rtabmap/LoopThr 0.07', description='Args'),
+            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --Kp/DetectorStrategy 1 --Vis/FeatureType 1 --LoopThr 0.04', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
             DeclareLaunchArgument('frame_id', default_value='base_link', description=''),
@@ -88,10 +88,10 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Camera extrinsics (left and right cameras) - MANTA_2023_11 (wrt. VN110)
+            # Camera extrinsics (left and right cameras) - MANTA_2023_04
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.0870712', '-0.0500126', '0.1008888', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
+                arguments=['0.4552', '-0.46535', '0.096', '3.21355726e-05', '1.17229573e-04', '7.06816690e-01', '7.07396742e-01', 'base_link_frd', 'stereo_camera_left_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
@@ -116,3 +116,4 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
     ])
+

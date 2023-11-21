@@ -50,14 +50,14 @@ def generate_launch_description():
 
             # Additional constraints topics
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
-            DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
+            # DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
 
             # Depth filter parameters
             DeclareLaunchArgument('depth_subscriber', default_value='/converted/depth'),
             DeclareLaunchArgument('depth_ned_frame_id', default_value='depth_link_ned'),
 
-            # Odometry filter parameters
-            DeclareLaunchArgument('odom_subscriber', default_value='/converted/state'),
+            # # Odometry filter parameters
+            # DeclareLaunchArgument('odom_subscriber', default_value='/converted/state'),
 
             # Depth constraint specific node
             Node(
@@ -70,15 +70,15 @@ def generate_launch_description():
                 namespace=LaunchConfiguration('namespace')
             ),
 
-            # Odometry relative constraint specific node
-            Node(
-                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
-                parameters=[{'odom_subscriber': LaunchConfiguration('odom_subscriber'),
-                             'odometry_filter_output_topic': LaunchConfiguration('odometry_filter_output_topic'),
-                             'frame_id': LaunchConfiguration('frame_id'),
-                             'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
+            # # Odometry relative constraint specific node
+            # Node(
+            #     package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+            #     parameters=[{'odom_subscriber': LaunchConfiguration('odom_subscriber'),
+            #                  'odometry_filter_output_topic': LaunchConfiguration('odometry_filter_output_topic'),
+            #                  'frame_id': LaunchConfiguration('frame_id'),
+            #                  'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            #     namespace=LaunchConfiguration('namespace')
+            # ),
 
             # Depth Sensor extrinsics
             Node(
