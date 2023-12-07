@@ -22,11 +22,11 @@ ARG NUM_THREADS=8
 # Set the working directory (optional)
 WORKDIR /home/compas/catkin_ws/src
 
-# Clone Inertial Sense Repository
+# Clone Inertial Sense Repository with specific commits
 RUN . /opt/ros/noetic/setup.sh && \
     catkin_init_workspace && \
-    git clone https://github.com/inertialsense/inertial-sense-ros.git &&\
-    cd inertial-sense-ros/lib && \
+    git clone https://github.com/inertialsense/inertial-sense-ros.git && \
+    cd inertial-sense-ros && git checkout b798274 && cd lib && \
     git clone https://github.com/inertialsense/inertial-sense-sdk.git && \
     cd inertial-sense-sdk && git checkout 952d452
 
