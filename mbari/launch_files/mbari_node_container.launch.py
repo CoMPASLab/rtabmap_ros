@@ -121,6 +121,16 @@ def launch_setup(context, *args, **kwargs):
                     }],
                 ),
                 ComposableNode(
+                    package='lass_old_lcm_to_ros2',
+                    plugin='lass_old_lcm_to_ros2::LCMToROSCameraRepublisher',
+                    name='lcm_to_ros2_camera_republisher',
+                    parameters=[{
+                        "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
+                        "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
+                        "use_sim_time": LaunchConfiguration('use_sim_time'),
+                    }],
+                ),
+                ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::StereoOdometry',
                     namespace=LaunchConfiguration('namespace'),
                     parameters=[{
@@ -289,6 +299,10 @@ def generate_launch_description():
         DeclareLaunchArgument('Optimizer/Strategy', default_value='"2"', description='Graph optimization strategy: 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres'),
         DeclareLaunchArgument('Vis/FeatureType', default_value='"6"', description='Feature type used for visual odometry'),
         DeclareLaunchArgument('Kp/DetectorStrategy', default_value='"6"', description='Feature type used for loop closing'),
+
+        # Camera config
+        DeclareLaunchArgument('left_calib_file_path', default_value=''),
+        DeclareLaunchArgument('right_calib_file_path', default_value=''),
 
         # Absolute depth topic
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),
