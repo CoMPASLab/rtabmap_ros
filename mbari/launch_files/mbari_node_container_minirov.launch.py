@@ -301,6 +301,8 @@ def generate_launch_description():
         DeclareLaunchArgument('Optimizer/Strategy', default_value='"2"', description='Graph optimization strategy: 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres'),
         DeclareLaunchArgument('Vis/FeatureType', default_value='"6"', description='Feature type used for visual odometry'),
         DeclareLaunchArgument('Kp/DetectorStrategy', default_value='"6"', description='Feature type used for loop closing'),
+        DeclareLaunchArgument('RGBD/OptimizeMaxError', default_value='"3.0"', description='Max distance to graph optimize over'),
+        DeclareLaunchArgument('Rtabmap/LoopThr', default_value='"0.11"', description='Reject loop closures if optimization error ratio is greater than this value'),
 
         # Camera config
         DeclareLaunchArgument('left_calib_file_path', default_value=''),

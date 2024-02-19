@@ -7,7 +7,6 @@ from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 
-
 def generate_launch_description():
 
     # Packages Directories
@@ -40,10 +39,18 @@ def generate_launch_description():
             # RTAB-Map arguments
             DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
             DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-            DeclareLaunchArgument('args', default_value='--delete_db_on_start --Optimizer/Strategy 2 --RGBD/OptimizeMaxError 50.0 --Kp/DetectorStrategy 0 --Vis/FeatureType 0 --Rtabmap/LoopThr 0.07', description='Args'),
+            DeclareLaunchArgument('args', default_value='', description='Args'),
             DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
             DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
             DeclareLaunchArgument('frame_id', default_value='base_link', description=''),
+
+            # RTAB-Map params
+            DeclareLaunchArgument('delete_db_on_start', default_value='true', description='Whether to delete existing database file on startup'),
+            DeclareLaunchArgument('Optimizer/Strategy', default_value='"2"', description='Graph optimization strategy: 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres'),
+            DeclareLaunchArgument('Vis/FeatureType', default_value='"0"', description='Feature type used for visual odometry'),
+            DeclareLaunchArgument('Kp/DetectorStrategy', default_value='"0"', description='Feature type used for loop closing'),
+            DeclareLaunchArgument('RGBD/OptimizeMaxError', default_value='"50.0"', description='Max distance to graph optimize over'),
+            DeclareLaunchArgument('Rtabmap/LoopThr', default_value='"0.07"', description='Reject loop closures if optimization error ratio is greater than this value'),
 
             # RTAB-Map Odometry Input
             DeclareLaunchArgument('qos_odom', default_value='2', description=''),
