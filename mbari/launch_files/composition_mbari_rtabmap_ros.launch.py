@@ -7,7 +7,7 @@ import os
 
 from launch import LaunchDescription, Substitution, LaunchContext
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch_ros.actions import LoadComposableNodes
+from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.conditions import IfCondition
@@ -52,8 +52,13 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
 
-        LoadComposableNodes(
-            target_container='mbari_rtabmap_container',
+        ComposableNodeContainer(
+            name='mbari_rtabmap_container',
+            package='rclcpp_components',
+            executable='component_container_mt',
+            prefix=LaunchConfiguration('launch_prefix'),
+            output='screen',
+            namespace='',
             composable_node_descriptions=[
                 ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::StereoOdometry',

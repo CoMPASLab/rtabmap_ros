@@ -165,13 +165,10 @@ def generate_launch_description():
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             ),
 
-            ComposableNodeContainer(
-                name='mbari_rtabmap_container',
-                package='rclcpp_components',
-                executable='component_container_mt',
-                prefix=LaunchConfiguration('launch_prefix'),
-                output='screen',
-                namespace='',
+            rtab_launch,
+            stereo_proc_launch,
+            LoadComposableNodes(
+                target_container='mbari_rtabmap_container',
                 composable_node_descriptions=[
                     ComposableNode(
                         package='mola_lcm_to_ros2',
@@ -186,8 +183,6 @@ def generate_launch_description():
                 ]
             ),
 
-            stereo_proc_launch,
-            rtab_launch,
 
             # RTAB-Map pose reset service
             Node(
