@@ -6,6 +6,8 @@ from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
+from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
+from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
 
@@ -13,7 +15,8 @@ def generate_launch_description():
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     # Launch files
-    mbari_container_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/mbari_node_container_minirov.launch.py'))
+    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py'))
+    rtab_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'))
 
     # Camera calibration files
     left_calib_path = os.path.join(
@@ -26,6 +29,7 @@ def generate_launch_description():
     # Republishers
     republisher_dir = get_package_share_directory('mola_lcm_to_ros2')
     republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_params.yaml')
+    camera_republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
 
     return LaunchDescription([
             # Declare launch arguments. These arguments will overwrite any argument in a configuration file.
@@ -66,6 +70,8 @@ def generate_launch_description():
 
             # # Odometry filter parameters
             # DeclareLaunchArgument('odom_subscriber', default_value='/converted/state'),
+
+            DeclareLaunchArgument('launch_prefix',  default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
 
             # DVL republisher
             Node(
@@ -143,7 +149,6 @@ def generate_launch_description():
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
                 arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '1.0', 'base_link_frd', 'depth_link_frd'],
                 parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
             ),
 
             # Camera extrinsics (left and right cameras) - MANTA_2023_11 (wrt. VN110)
@@ -151,7 +156,6 @@ def generate_launch_description():
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
                 arguments=['0.0870712', '-0.0500126', '0.1008888', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
             ),
 
             # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
@@ -159,10 +163,31 @@ def generate_launch_description():
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
                 arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', LaunchConfiguration('frame_id'), 'base_link_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
             ),
 
-            mbari_container_launch,
+            ComposableNodeContainer(
+                name='mbari_rtabmap_container',
+                package='rclcpp_components',
+                executable='component_container_mt',
+                prefix=LaunchConfiguration('launch_prefix'),
+                output='screen',
+                namespace='',
+                composable_node_descriptions=[
+                    ComposableNode(
+                        package='mola_lcm_to_ros2',
+                        plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
+                        name='minirov_camera_republisher',
+                        parameters=[camera_republisher_config, {
+                            "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
+                            "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
+                            "use_sim_time": LaunchConfiguration('use_sim_time'),
+                        }],
+                    ),
+                ]
+            ),
+
+            stereo_proc_launch,
+            rtab_launch,
 
             # RTAB-Map pose reset service
             Node(

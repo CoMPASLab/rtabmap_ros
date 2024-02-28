@@ -7,7 +7,7 @@ import os
 
 from launch import LaunchDescription, Substitution, LaunchContext
 from launch.actions import DeclareLaunchArgument, OpaqueFunction
-from launch_ros.actions import ComposableNodeContainer
+from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch.conditions import IfCondition
@@ -52,84 +52,9 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
 
-        DeclareLaunchArgument(
-            name='approximate_sync', default_value='False',
-            description='Whether to use approximate synchronization of topics. Set to true if '
-                        'the left and right cameras do not produce exactly synced timestamps.'
-        ),
-        DeclareLaunchArgument(
-            name='use_system_default_qos', default_value='False',
-            description='Use the RMW QoS settings for the image and camera info subscriptions.'
-        ),
-
-        ComposableNodeContainer(
-            name='mbari_rtabmap_container',
-            package='rclcpp_components',
-            executable='component_container_mt',
-            arguments=[LaunchConfiguration("args"), LaunchConfiguration("odom_args")],
-            prefix=LaunchConfiguration('launch_prefix'),
-            output='screen',
-            namespace='',
+        LoadComposableNodes(
+            target_container='mbari_rtabmap_container',
             composable_node_descriptions=[
-                ComposableNode(
-                    package='image_proc',
-                    plugin='image_proc::DebayerNode',
-                    name='debayer_node',
-                    namespace='stereo_camera/left',
-                    parameters=[{
-                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
-                        'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    }],
-                ),
-                ComposableNode(
-                    package='image_proc',
-                    plugin='image_proc::RectifyNode',
-                    name='rectify_color_node',
-                    namespace='stereo_camera/left',
-                    remappings=[
-                        ('image', 'image_color'),
-                        ('image_rect', 'image_rect_color')
-                    ],
-                    parameters=[{
-                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
-                        'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    }],
-                ),
-                ComposableNode(
-                    package='image_proc',
-                    plugin='image_proc::DebayerNode',
-                    name='debayer_node',
-                    namespace='stereo_camera/right',
-                    parameters=[{
-                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
-                        'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    }],
-                ),
-                ComposableNode(
-                    package='image_proc',
-                    plugin='image_proc::RectifyNode',
-                    name='rectify_mono_node',
-                    namespace='stereo_camera/right',
-                    remappings=[
-                        ('image', 'image_mono'),
-                        ('camera_info', 'camera_info'),
-                        ('image_rect', 'image_rect')
-                    ],
-                    parameters=[{
-                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
-                        'use_sim_time': LaunchConfiguration('use_sim_time'),
-                    }],
-                ),
-                ComposableNode(
-                    package='lass_old_lcm_to_ros2',
-                    plugin='lass_old_lcm_to_ros2::LCMToROSCameraRepublisher',
-                    name='lcm_to_ros2_camera_republisher',
-                    parameters=[{
-                        "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
-                        "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
-                        "use_sim_time": LaunchConfiguration('use_sim_time'),
-                    }],
-                ),
                 ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::StereoOdometry',
                     namespace=LaunchConfiguration('namespace'),
@@ -206,7 +131,6 @@ def launch_setup(context, *args, **kwargs):
             ]
         ),
 
-        # Stereo odometry
         Node(
             package='rtabmap_ros', executable='rtabmapviz', output='screen',
             parameters=[{
@@ -299,10 +223,8 @@ def generate_launch_description():
         DeclareLaunchArgument('Optimizer/Strategy', default_value='"2"', description='Graph optimization strategy: 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres'),
         DeclareLaunchArgument('Vis/FeatureType', default_value='"6"', description='Feature type used for visual odometry'),
         DeclareLaunchArgument('Kp/DetectorStrategy', default_value='"6"', description='Feature type used for loop closing'),
-
-        # Camera config
-        DeclareLaunchArgument('left_calib_file_path', default_value=''),
-        DeclareLaunchArgument('right_calib_file_path', default_value=''),
+        DeclareLaunchArgument('RGBD/OptimizeMaxError', default_value='"3.0"', description='Max distance to graph optimize over'),
+        DeclareLaunchArgument('Rtabmap/LoopThr', default_value='"0.11"', description='Reject loop closures if optimization error ratio is greater than this value'),
 
         # Absolute depth topic
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),
