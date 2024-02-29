@@ -1,0 +1,15 @@
+frame_id: base_link
+odom_frame_id: odom # Frame to output estimated motion to
+publish_tf: True # Publish TF between odometry and base frame (base_link)
+wait_for_transform: 0.2
+approx_sync: True
+approx_sync_max_interval: 0.0 # (sec) 0 means infinite interval duration (used with approx_sync=true)
+config_path: "" # Param to use if you want to load Rtab parameters from .ini file
+queue_size: 10
+qos: 1 # Image QoS
+qos_camera_info: 1
+guess_frame_id: "" # Frame for guess data (output of motion estimation such as robot localization)
+guess_min_translation: 0.0
+guess_min_rotation: 0.0
+Vis/FeatureType: "0"
+Kp/DetectorStrategy: "0"

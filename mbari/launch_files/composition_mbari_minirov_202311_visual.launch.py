@@ -14,9 +14,16 @@ def generate_launch_description():
     # Packages Directories
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
-    # Launch files
-    stereo_proc_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py'))
-    rtab_launch = IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'))
+    # Param configs
+    node_params = os.path.join(
+        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'node_params.yaml'
+    )
+    rtabmap_core_composition_params = os.path.join(
+        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'rtabmap_core_composition_params.yaml'
+    )
+    stereo_odometry_composition_params = os.path.join(
+        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'stereo_odometry_composition_params.yaml'
+    )
 
     # Camera calibration files
     left_calib_path = os.path.join(
@@ -32,46 +39,27 @@ def generate_launch_description():
     camera_republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
 
     return LaunchDescription([
-            # Declare launch arguments. These arguments will overwrite any argument in a configuration file.
-            # Sim Time to use /clock instead of wall clock time
-            DeclareLaunchArgument('use_sim_time', default_value='true'),
+            DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
+            DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
+            DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
 
             # Camera calibration files
             DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
             DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
 
-            # RTAB-Map arguments
-            DeclareLaunchArgument('approx_sync', default_value='true', description='If timestamps of the input topics should be synchronized using approximate or exact time policy.'),
-            DeclareLaunchArgument('publish_tf_map', default_value='true', description='Publish TF between map and odometry.'),
-            DeclareLaunchArgument('args', default_value='', description='Args'),
-            DeclareLaunchArgument('odom_args', default_value='', description='More arguments for odometry (overwrite same parameters in rtabmap_args).'),
-            DeclareLaunchArgument('namespace', default_value='rtabmap', description=''),
-            DeclareLaunchArgument('frame_id', default_value='base_link', description=''),
-
-            # RTAB-Map params
-            DeclareLaunchArgument('delete_db_on_start', default_value='true', description='Whether to delete existing database file on startup'),
-            DeclareLaunchArgument('Optimizer/Strategy', default_value='"2"', description='Graph optimization strategy: 0=TORO, 1=g2o, 2=GTSAM and 3=Ceres'),
-            DeclareLaunchArgument('Vis/FeatureType', default_value='"0"', description='Feature type used for visual odometry'),
-            DeclareLaunchArgument('Kp/DetectorStrategy', default_value='"0"', description='Feature type used for loop closing'),
-            DeclareLaunchArgument('RGBD/OptimizeMaxError', default_value='"50.0"', description='Max distance to graph optimize over'),
-            DeclareLaunchArgument('Rtabmap/LoopThr', default_value='"0.07"', description='Reject loop closures if optimization error ratio is greater than this value'),
-
-            # RTAB-Map Odometry Input
-            DeclareLaunchArgument('qos_odom', default_value='2', description=''),
-            DeclareLaunchArgument('odom_guess_frame_id', default_value='', description=''),
-
             # Additional constraints topics
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
             # DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
 
-            # Depth filter parameters
-            DeclareLaunchArgument('depth_subscriber', default_value='/converted/depth'),
-            DeclareLaunchArgument('depth_ned_frame_id', default_value='depth_link_ned'),
-
             # # Odometry filter parameters
             # DeclareLaunchArgument('odom_subscriber', default_value='/converted/state'),
 
-            DeclareLaunchArgument('launch_prefix',  default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
+            # File for params for all non-composition nodes
+            DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
+
+            # Composition params
+            DeclareLaunchArgument('rtabmap_core_composition_params', default_value=rtabmap_core_composition_params, description=''),
+            DeclareLaunchArgument('stereo_odometry_composition_params', default_value=stereo_odometry_composition_params, description=''),
 
             # DVL republisher
             Node(
@@ -126,12 +114,7 @@ def generate_launch_description():
             # Depth constraint specific node
             Node(
                 package='rtabmap_ros', executable='depth_filter', name='depth_filter',
-                parameters=[{'depth_subscriber': LaunchConfiguration('depth_subscriber'),
-                             'depth_publisher': LaunchConfiguration('absolute_depth_topic'),
-                             'depth_ned_frame_id': LaunchConfiguration('depth_ned_frame_id'),
-                             'base_link_frame_id': LaunchConfiguration('frame_id'),
-                             'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
+                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
             ),
 
             # # Odometry relative constraint specific node
@@ -161,12 +144,18 @@ def generate_launch_description():
             # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
             Node(
                 package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
-                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', LaunchConfiguration('frame_id'), 'base_link_frd'],
+                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd'],
                 parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
             ),
 
-            rtab_launch,
-            stereo_proc_launch,
+            IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'),
+                    launch_arguments={"node_params": node_params,
+                        "rtabmap_core_composition_params": rtabmap_core_composition_params,
+                        "stereo_odometry_composition_params": stereo_odometry_composition_params
+                        }.items()),
+
+            IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py')),
+
             LoadComposableNodes(
                 target_container='mbari_rtabmap_container',
                 composable_node_descriptions=[
@@ -183,12 +172,10 @@ def generate_launch_description():
                 ]
             ),
 
-
             # RTAB-Map pose reset service
             Node(
                 package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
-                parameters=[{'frame_id': LaunchConfiguration('frame_id'),
-                             'guess_frame_id': LaunchConfiguration('odom_guess_frame_id')}],
+                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 namespace=LaunchConfiguration('namespace')
             ),
     ])

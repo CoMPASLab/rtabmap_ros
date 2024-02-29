@@ -747,19 +747,23 @@ install(DIRECTORY include/${PROJECT_NAME}/
 
 ## MBARI specific
 
-install(DIRECTORY 
+install(DIRECTORY
    launch/ros2/.
    mbari/launch_files/.
    DESTINATION share/${PROJECT_NAME}/launch
 )
 
-install(DIRECTORY 
+install(DIRECTORY
    mbari/camera_calibrations/.
    DESTINATION share/${PROJECT_NAME}/launch/camera_calibrations
 )
-install(DIRECTORY 
+install(DIRECTORY
    mbari/robot_localization_params/.
    DESTINATION share/${PROJECT_NAME}/launch/robot_localization_params
+)
+install(DIRECTORY
+   mbari/param_configurations/.
+   DESTINATION share/${PROJECT_NAME}/launch/param_configurations
 )
 
 install(PROGRAMS

@@ -1,0 +1,29 @@
+subscribe_stereo: True
+subscribe_rgb: False
+subscribe_depth: False
+subscribe_odom_info: True
+frame_id: base_link
+map_frame_id: map
+odom_frame_id: odom
+publish_tf: True # Publish TF between map and odometry
+odom_tf_angular_variance: 1.0 # If TF is used to get odometry, this is the default angular variance
+odom_tf_linear_variance: 1.0 # If TF is used to get odometry, this is the default linear variance
+odom_sensor_sync: False
+wait_for_transform: 0.2
+database_path: ~/rtab_out/map.db
+trajectory_path: output_trajectory.csv
+approx_sync: True # If timestamps of the input topics should be synchronized using approximate or exact time policy.
+config_path: "" # Param to use if you want to load Rtab parameters from .ini file
+queue_size: 10
+qos_image: 1 # 0=System default, 1=Reliable, 2=Best Effort
+qos_odom: 2
+qos_camera_info: 1
+qos_absolute_depth: 2
+delete_db_on_start: True
+Mem/IncrementalMemory: "true"
+Mem/InitWMWithAllNodes: "false"
+Optimizer/Strategy: "2"
+Vis/FeatureType: "0"
+Kp/DetectorStrategy: "0"
+RGBD/OptimizeMaxError: "50.0"
+Rtabmap/LoopThr: "0.07"
