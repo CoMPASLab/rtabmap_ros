@@ -16,13 +16,13 @@ def generate_launch_description():
 
     # Param configs
     node_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'node_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'node_params.yaml'
     )
     rtabmap_core_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'rtabmap_core_composition_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'rtabmap_core_composition_params.yaml'
     )
     stereo_odometry_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'param_configurations', 'MINIROV_2023_11', 'stereo_odometry_composition_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'stereo_odometry_composition_params.yaml'
     )
 
     # Camera calibration files

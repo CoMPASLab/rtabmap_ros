@@ -762,8 +762,8 @@ install(DIRECTORY
    DESTINATION share/${PROJECT_NAME}/launch/robot_localization_params
 )
 install(DIRECTORY
-   mbari/param_configurations/.
-   DESTINATION share/${PROJECT_NAME}/launch/param_configurations
+   mbari/ros_param_configurations/.
+   DESTINATION share/${PROJECT_NAME}/launch/ros_param_configurations
 )
 
 install(PROGRAMS
