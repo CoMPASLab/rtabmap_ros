@@ -1,7 +1,7 @@
 import os
 
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
+from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
@@ -10,23 +10,25 @@ from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
-def generate_launch_description():
 
-    # With filter or visual only
-    use_odometry_filter = True
+def launch_setup(context, *args, **kwargs):
+
+    visual_only = IfCondition(context.perform_substitution(LaunchConfiguration('visual_odometry_only')))._predicate_func(context)
+
+    params_folder = 'MINIROV_2023_11_VISUAL_ONLY' if visual_only else 'MINIROV_2023_11'
 
     # Packages Directories
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
 
     # Param configs
     node_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'node_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'node_params.yaml'
     )
     rtabmap_core_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'rtabmap_core_composition_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'rtabmap_core_composition_params.yaml'
     )
     stereo_odometry_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', 'MINIROV_2023_11', 'stereo_odometry_composition_params.yaml'
+        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'stereo_odometry_composition_params.yaml'
     )
 
     # Camera calibration files
@@ -42,138 +44,147 @@ def generate_launch_description():
     republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_params.yaml')
     camera_republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
 
+    return [
+        # Camera calibration files
+        DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
+        DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
+
+        # File for params for all non-composition nodes
+        DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
+
+        # Composition params
+        DeclareLaunchArgument('rtabmap_core_composition_params', default_value=rtabmap_core_composition_params, description=''),
+        DeclareLaunchArgument('stereo_odometry_composition_params', default_value=stereo_odometry_composition_params, description=''),
+
+        # DVL republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='dvl_republisher',
+            name='minirov_dvl_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
+        ),
+
+        # IMU republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='imu_republisher',
+            name='minirov_imu_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
+        ),
+
+        # Depth republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='depth_republisher',
+            name='minirov_depth_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
+        ),
+
+        # State republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='state_republisher',
+            name='minirov_state_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
+        ),
+
+        # Clock republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='clock_republisher',
+            name='minirov_clock_republisher',
+            parameters=[republisher_config]
+        ),
+
+        # ROS TF -> LCM odometry republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='tf_lcm_republisher',
+            name='minirov_tf_lcm_republisher',
+            parameters=[republisher_config],
+        ),
+
+        # Depth constraint specific node
+        Node(
+            package='rtabmap_ros', executable='depth_filter', name='depth_filter',
+            parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
+        ),
+
+        # Odometry relative constraint specific node
+        Node(
+            package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+            parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            namespace=LaunchConfiguration('namespace')
+        ),
+
+        # Depth Sensor extrinsics
+        Node(
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
+            arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '1.0', 'base_link_frd', 'depth_link_frd'],
+            parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+        ),
+
+        # Camera extrinsics (left and right cameras) - MANTA_2023_11 (wrt. VN110)
+        Node(
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
+            arguments=['0.0870712', '-0.0500126', '0.1008888', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
+            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+        ),
+
+        # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
+        Node(
+            package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
+            arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd'],
+            parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
+        ),
+
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'),
+                launch_arguments={"node_params": node_params,
+                    "rtabmap_core_composition_params": rtabmap_core_composition_params,
+                    "stereo_odometry_composition_params": stereo_odometry_composition_params
+                    }.items()),
+
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py')),
+
+        LoadComposableNodes(
+            target_container='mbari_rtabmap_container',
+            composable_node_descriptions=[
+                ComposableNode(
+                    package='mola_lcm_to_ros2',
+                    plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
+                    name='minirov_camera_republisher',
+                    parameters=[camera_republisher_config, {
+                        "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
+                        "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
+                        "use_sim_time": LaunchConfiguration('use_sim_time'),
+                    }],
+                ),
+            ]
+        ),
+
+        # RTAB-Map pose reset service
+        Node(
+            package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
+            parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            namespace=LaunchConfiguration('namespace')
+        ),
+
+    ]
+
+def generate_launch_description():
+
     return LaunchDescription([
-            DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
-            DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
-            DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
+        DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
+        DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
+        DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
 
-            # Camera calibration files
-            DeclareLaunchArgument('left_calib_file_path', default_value=left_calib_path),
-            DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
+        # Whether to use visual odometry only
+        DeclareLaunchArgument('visual_odometry_only', default_value='true'),
 
-            # Additional constraints topics
-            DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+        # Additional constraints topics
+        DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
 
-            # File for params for all non-composition nodes
-            DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
-
-            # Composition params
-            DeclareLaunchArgument('rtabmap_core_composition_params', default_value=rtabmap_core_composition_params, description=''),
-            DeclareLaunchArgument('stereo_odometry_composition_params', default_value=stereo_odometry_composition_params, description=''),
-
-            # DVL republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='dvl_republisher',
-                name='minirov_dvl_republisher',
-                parameters=[republisher_config, {
-                    "use_sim_time": LaunchConfiguration('use_sim_time')
-                    }]
-            ),
-
-            # IMU republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='imu_republisher',
-                name='minirov_imu_republisher',
-                parameters=[republisher_config, {
-                    "use_sim_time": LaunchConfiguration('use_sim_time')
-                    }]
-            ),
-
-            # Depth republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='depth_republisher',
-                name='minirov_depth_republisher',
-                parameters=[republisher_config, {
-                    "use_sim_time": LaunchConfiguration('use_sim_time')
-                    }]
-            ),
-
-            # State republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='state_republisher',
-                name='minirov_state_republisher',
-                parameters=[republisher_config, {
-                    "use_sim_time": LaunchConfiguration('use_sim_time')
-                    }]
-            ),
-
-            # Clock republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='clock_republisher',
-                name='minirov_clock_republisher',
-                parameters=[republisher_config]
-            ),
-
-            # ROS TF -> LCM odometry republisher
-            Node(
-                package='mola_lcm_to_ros2', executable='tf_lcm_republisher',
-                name='minirov_tf_lcm_republisher',
-                parameters=[republisher_config],
-            ),
-
-            # Depth constraint specific node
-            Node(
-                package='rtabmap_ros', executable='depth_filter', name='depth_filter',
-                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            ),
-
-            # Odometry relative constraint specific node
-            Node(
-                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
-                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace'),
-                condition=IfCondition('true' if use_odometry_filter else 'false')
-            ),
-
-            # Depth Sensor extrinsics
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_depth_link_publisher',
-                arguments=['0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '1.0', 'base_link_frd', 'depth_link_frd'],
-                parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            ),
-
-            # Camera extrinsics (left and right cameras) - MANTA_2023_11 (wrt. VN110)
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_to_left_cam_publisher',
-                arguments=['0.0870712', '-0.0500126', '0.1008888', '0.0', '0.0', '0.7071068', '0.7071068', 'base_link_frd', 'stereo_camera_left_frd'],
-                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-            ),
-
-            # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
-            Node(
-                package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
-                arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd'],
-                parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
-            ),
-
-            IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'),
-                    launch_arguments={"node_params": node_params,
-                        "rtabmap_core_composition_params": rtabmap_core_composition_params,
-                        "stereo_odometry_composition_params": stereo_odometry_composition_params
-                        }.items()),
-
-            IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py')),
-
-            LoadComposableNodes(
-                target_container='mbari_rtabmap_container',
-                composable_node_descriptions=[
-                    ComposableNode(
-                        package='mola_lcm_to_ros2',
-                        plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
-                        name='minirov_camera_republisher',
-                        parameters=[camera_republisher_config, {
-                            "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
-                            "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
-                            "use_sim_time": LaunchConfiguration('use_sim_time'),
-                        }],
-                    ),
-                ]
-            ),
-
-            # RTAB-Map pose reset service
-            Node(
-                package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
-                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
-                namespace=LaunchConfiguration('namespace')
-            ),
+        OpaqueFunction(function=launch_setup),
     ])
