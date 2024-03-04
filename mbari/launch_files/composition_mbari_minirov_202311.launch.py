@@ -136,7 +136,7 @@ def launch_setup(context, *args, **kwargs):
         # Forward-Right-Down (underwater navigation standard) base link to Forward-Left-Up (ROS standard) base link
         Node(
             package='tf2_ros', executable='static_transform_publisher', name='base_link_flu_to_frd_publisher',
-            arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', 'base_link', 'base_link_frd'],
+            arguments=['0.0', '0.0', '0.0', '1', '0', '0', '0', LaunchConfiguration('frame_to_convert_to_from_base_link_frd'), 'base_link_frd'],
             parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
         ),
 
@@ -179,6 +179,8 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
         DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
         DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
+
+        DeclareLaunchArgument('frame_to_convert_to_from_base_link_frd',     default_value='base_link', description=''),
 
         # Whether to use visual odometry only
         DeclareLaunchArgument('visual_odometry_only', default_value='true'),
