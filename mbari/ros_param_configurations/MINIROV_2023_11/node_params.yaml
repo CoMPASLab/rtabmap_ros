@@ -10,6 +10,12 @@
     frame_id: base_link
     guess_frame_id: ""
 
+/rtabmap/odometry_filter:
+  ros__parameters:
+    frame_id: base_link
+    odometry_subscriber: /converted/state
+    odometry_filter_output_topic: /rtabmap/additional_graph_links
+
 /rtabmap/rtabmap:
   ros__parameters:
     subscribe_stereo: True

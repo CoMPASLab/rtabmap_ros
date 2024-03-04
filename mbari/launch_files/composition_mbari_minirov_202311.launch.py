@@ -5,11 +5,15 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from launch.conditions import IfCondition
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import ComposableNodeContainer, LoadComposableNodes
+from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
 def generate_launch_description():
+
+    # With filter or visual only
+    use_odometry_filter = True
 
     # Packages Directories
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
@@ -49,10 +53,6 @@ def generate_launch_description():
 
             # Additional constraints topics
             DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
-            # DeclareLaunchArgument('odometry_filter_output_topic', default_value='/rtabmap/additional_graph_links'),
-
-            # # Odometry filter parameters
-            # DeclareLaunchArgument('odom_subscriber', default_value='/converted/state'),
 
             # File for params for all non-composition nodes
             DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
@@ -117,15 +117,13 @@ def generate_launch_description():
                 parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
             ),
 
-            # # Odometry relative constraint specific node
-            # Node(
-            #     package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
-            #     parameters=[{'odom_subscriber': LaunchConfiguration('odom_subscriber'),
-            #                  'odometry_filter_output_topic': LaunchConfiguration('odometry_filter_output_topic'),
-            #                  'frame_id': LaunchConfiguration('frame_id'),
-            #                  'use_sim_time': LaunchConfiguration('use_sim_time')}],
-            #     namespace=LaunchConfiguration('namespace')
-            # ),
+            # Odometry relative constraint specific node
+            Node(
+                package='rtabmap_ros', executable='odometry_filter', name='odometry_filter',
+                parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                namespace=LaunchConfiguration('namespace'),
+                condition=IfCondition('true' if use_odometry_filter else 'false')
+            ),
 
             # Depth Sensor extrinsics
             Node(
