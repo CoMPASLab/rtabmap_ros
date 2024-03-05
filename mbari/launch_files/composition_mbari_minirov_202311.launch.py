@@ -5,7 +5,7 @@ from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, Opaq
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
@@ -42,7 +42,7 @@ def launch_setup(context, *args, **kwargs):
     # Republishers
     republisher_dir = get_package_share_directory('mola_lcm_to_ros2')
     republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_params.yaml')
-    camera_republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
+    camera_republisher_composition_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
 
     return [
         # Camera calibration files
@@ -149,19 +149,31 @@ def launch_setup(context, *args, **kwargs):
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py')),
 
         LoadComposableNodes(
+            condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
             target_container='mbari_rtabmap_container',
             composable_node_descriptions=[
                 ComposableNode(
                     package='mola_lcm_to_ros2',
                     plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
                     name='minirov_camera_republisher',
-                    parameters=[camera_republisher_config, {
+                    parameters=[camera_republisher_composition_config, {
                         "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
                         "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
                         "use_sim_time": LaunchConfiguration('use_sim_time'),
                     }],
                 ),
-            ]
+            ],
+        ),
+        Node(
+            condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
+            package='mola_lcm_to_ros2',
+            executable='camera_republisher',
+            name='minirov_camera_republisher',
+            parameters=[republisher_config, {
+                "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
+                "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
+                "use_sim_time": LaunchConfiguration('use_sim_time'),
+            }],
         ),
 
         # RTAB-Map pose reset service
@@ -187,6 +199,9 @@ def generate_launch_description():
 
         # Additional constraints topics
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+
+        # Parameter for toggling composition
+        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
 
         OpaqueFunction(function=launch_setup),
     ])

@@ -8,7 +8,7 @@ from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch_ros.actions import ComposableNodeContainer
 from launch_ros.descriptions import ComposableNode
 from launch.substitutions import LaunchConfiguration
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from typing import Text
 
@@ -33,6 +33,7 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('right_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('right_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('right_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
 
         ComposableNodeContainer(
+            condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
             name='mbari_rtabmap_container',
             package='rclcpp_components',
             executable='component_container_mt',
@@ -68,7 +69,40 @@ def launch_setup(context, *args, **kwargs):
                         ("additional_graph_links_odometry", LaunchConfiguration('additional_graph_link_odometry_topic')),
                         ("odom", LaunchConfiguration('odom_topic'))
                     ],
-                ),
+                )
+            ],
+        ),
+        Node(
+            condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
+            package='rtabmap_ros',
+            executable='stereo_odometry',
+            parameters=[LaunchConfiguration('node_params'),
+                {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+            namespace=LaunchConfiguration('namespace'),
+            remappings=[
+                ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
+                ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
+                ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
+                ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
+                ("odom", "odom")
+            ]
+        ),
+        Node(
+            condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
+            package='rtabmap_ros',
+            executable='rtabmap',
+            parameters=[LaunchConfiguration('node_params'),
+                {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+            namespace=LaunchConfiguration('namespace'),
+            remappings=[
+                ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
+                ("right/image_rect", LaunchConfiguration('right_image_topic_relay')),
+                ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
+                ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
+                ("absolute_depth", LaunchConfiguration('absolute_depth_topic')),
+                ("additional_graph_links", LaunchConfiguration('additional_graph_link_topic')),
+                ("additional_graph_links_odometry", LaunchConfiguration('additional_graph_link_odometry_topic')),
+                ("odom", LaunchConfiguration('odom_topic'))
             ]
         ),
 
@@ -95,7 +129,10 @@ def generate_launch_description():
 
         # Arguments
         DeclareLaunchArgument('use_sim_time',   default_value='true',  description=''),
-        # Arguments
+
+        # Composition parameterized
+        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
+
         DeclareLaunchArgument('rtabmapviz',     default_value='true',  description='Launch RTAB-Map UI (optional).'),
         DeclareLaunchArgument('gui_cfg',        default_value='~/.ros/rtabmap_gui.ini',  description='Configuration path of rtabmapviz.'),
         DeclareLaunchArgument('launch_prefix',  default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
