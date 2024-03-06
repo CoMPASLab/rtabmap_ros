@@ -27,6 +27,8 @@ class ConditionalText(Substitution):
 
 def launch_setup(context, *args, **kwargs):
 
+    use_synced_rgbd = IfCondition(context.perform_substitution(LaunchConfiguration('input_rgbd_converted_from_stereo')))._predicate_func(context)
+
     return [
         #These arguments should not be modified directly, see referred topics without "_relay" suffix above
         DeclareLaunchArgument('left_image_topic_relay',      default_value=ConditionalText(''.join([LaunchConfiguration('left_image_topic').perform(context), "_relay"]), ''.join(LaunchConfiguration('left_image_topic').perform(context)), LaunchConfiguration('compressed').perform(context)), description='Should not be modified manually!'),
@@ -56,8 +58,14 @@ def launch_setup(context, *args, **kwargs):
                 ),
                 ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::CoreWrapper',
-                    parameters=[LaunchConfiguration('rtabmap_core_composition_params'),
-                        {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+                    parameters=[LaunchConfiguration('rtabmap_core_composition_params'), {
+                        "use_sim_time": LaunchConfiguration("use_sim_time"),
+                        "subscribe_stereo": not use_synced_rgbd,
+                        "subscribe_rgb": False,
+                        "subscribe_rgbd": use_synced_rgbd,
+                        "subscribe_depth": False,
+                        "subscribe_odom_info": True,
+                        }],
                     namespace=LaunchConfiguration('namespace'),
                     remappings=[
                         ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -91,8 +99,14 @@ def launch_setup(context, *args, **kwargs):
             condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
             package='rtabmap_ros',
             executable='rtabmap',
-            parameters=[LaunchConfiguration('node_params'),
-                {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+            parameters=[LaunchConfiguration('node_params'), {
+                "use_sim_time": LaunchConfiguration("use_sim_time"),
+                "subscribe_stereo": not use_synced_rgbd,
+                "subscribe_rgb": False,
+                "subscribe_rgbd": use_synced_rgbd,
+                "subscribe_depth": False,
+                "subscribe_odom_info": True,
+                }],
             namespace=LaunchConfiguration('namespace'),
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -132,6 +146,9 @@ def generate_launch_description():
 
         # Composition parameterized
         DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
+
+        # Whether to use RGBD converted from stereo
+        DeclareLaunchArgument('input_rgbd_converted_from_stereo', default_value='true', description='Whether to convert stereo images to RGBD format before sending them to Rtabmap core'),
 
         DeclareLaunchArgument('rtabmapviz',     default_value='true',  description='Launch RTAB-Map UI (optional).'),
         DeclareLaunchArgument('gui_cfg',        default_value='~/.ros/rtabmap_gui.ini',  description='Configuration path of rtabmapviz.'),

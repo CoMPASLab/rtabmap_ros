@@ -3,7 +3,7 @@ import os
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
@@ -11,7 +11,11 @@ from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
 
 
+
 def launch_setup(context, *args, **kwargs):
+
+    use_memory_sharing = IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context)
+    use_rgbd_sync = IfCondition(context.perform_substitution(LaunchConfiguration('input_rgbd_converted_from_stereo')))._predicate_func(context)
 
     visual_only = IfCondition(context.perform_substitution(LaunchConfiguration('visual_odometry_only')))._predicate_func(context)
 
@@ -55,6 +59,12 @@ def launch_setup(context, *args, **kwargs):
         # Composition params
         DeclareLaunchArgument('rtabmap_core_composition_params', default_value=rtabmap_core_composition_params, description=''),
         DeclareLaunchArgument('stereo_odometry_composition_params', default_value=stereo_odometry_composition_params, description=''),
+
+        DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
+        DeclareLaunchArgument('left_image_topic',        default_value=[LaunchConfiguration('stereo_namespace'), '/left/image_rect_color'], description='Input topic for either stereo sync or Rtabmap directly'),
+        DeclareLaunchArgument('right_image_topic',       default_value=[LaunchConfiguration('stereo_namespace'), '/right/image_rect'], description='Use grayscale image for efficiency'),
+        DeclareLaunchArgument('left_camera_info_topic',  default_value=[LaunchConfiguration('stereo_namespace'), '/left/camera_info'], description=''),
+        DeclareLaunchArgument('right_camera_info_topic', default_value=[LaunchConfiguration('stereo_namespace'), '/right/camera_info'], description=''),
 
         # DVL republisher
         Node(
@@ -176,13 +186,46 @@ def launch_setup(context, *args, **kwargs):
             }],
         ),
 
+        LoadComposableNodes(
+            condition=IfCondition(PythonExpression([str(use_rgbd_sync),
+                " and ", str(use_memory_sharing)])),
+            target_container='mbari_rtabmap_container',
+            composable_node_descriptions=[
+                ComposableNode(
+                    package='rtabmap_ros',
+                    plugin='rtabmap_ros::StereoSync',
+                    parameters=[{'approx_sync': False, 'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                    namespace=LaunchConfiguration('namespace'),
+                    remappings=[
+                        ("left/image_rect", LaunchConfiguration('left_image_topic')),
+                        ("right/image_rect", LaunchConfiguration('right_image_topic')),
+                        ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
+                        ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
+                    ]
+                )
+            ]
+        ),
+        Node(
+            package='rtabmap_ros', executable='stereo_sync', output='screen',
+            condition=IfCondition(PythonExpression([str(use_rgbd_sync),
+                " and ", str(not use_memory_sharing)])),
+            parameters=[{'approx_sync': False, 'use_sim_time': LaunchConfiguration('use_sim_time')}],
+            namespace=LaunchConfiguration('namespace'),
+            remappings=[
+                ("left/image_rect", LaunchConfiguration('left_image_topic')),
+                ("right/image_rect", LaunchConfiguration('right_image_topic')),
+                ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
+                ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
+            ]
+        ),
+
+
         # RTAB-Map pose reset service
         Node(
             package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
             parameters=[node_params, {'use_sim_time': LaunchConfiguration('use_sim_time')}],
             namespace=LaunchConfiguration('namespace')
         ),
-
     ]
 
 def generate_launch_description():
@@ -194,11 +237,14 @@ def generate_launch_description():
 
         DeclareLaunchArgument('frame_to_convert_to_from_base_link_frd',     default_value='base_link', description=''),
 
+        # Additional constraints topics
+        DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+
         # Whether to use visual odometry only
         DeclareLaunchArgument('visual_odometry_only', default_value='true'),
 
-        # Additional constraints topics
-        DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
+        # Input RGBD to Rtabmap
+        DeclareLaunchArgument('input_rgbd_converted_from_stereo', default_value='true', description='Whether to convert stereo images to RGBD format before sending them to Rtabmap core'),
 
         # Parameter for toggling composition
         DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
