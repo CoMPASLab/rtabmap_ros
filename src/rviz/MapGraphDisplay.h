@@ -30,7 +30,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define MAP_GRAPH_DISPLAY_H
 
 #include <rtabmap_ros/visibility.h>
-#include <rtabmap_ros/msg/map_graph.hpp>
+#include <mbari_rtabmap_msgs/msg/map_graph.hpp>
 
 #include <rviz_common/message_filter_display.hpp>
 
@@ -59,7 +59,7 @@ namespace rtabmap_ros
  * \class MapGraphDisplay
  * \brief Displays the graph of rtabmap::MapGraph message
  */
-class RTABMAP_ROS_PUBLIC MapGraphDisplay: public rviz_common::MessageFilterDisplay<rtabmap_ros::msg::MapGraph>
+class RTABMAP_ROS_PUBLIC MapGraphDisplay: public rviz_common::MessageFilterDisplay<mbari_rtabmap_msgs::msg::MapGraph>
 {
 Q_OBJECT
 public:
@@ -74,7 +74,7 @@ protected:
   virtual void onInitialize();
 
   /** @brief Overridden from MessageFilterDisplay. */
-  void processMessage( const rtabmap_ros::msg::MapGraph::ConstSharedPtr msg );
+  void processMessage( const mbari_rtabmap_msgs::msg::MapGraph::ConstSharedPtr msg );
 
 private:
   void destroyObjects();

@@ -80,12 +80,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define BAD_COVARIANCE 9999
 
 //msgs
-#include "rtabmap_ros/msg/info.hpp"
-#include "rtabmap_ros/msg/map_data.hpp"
-#include "rtabmap_ros/msg/map_graph.hpp"
-#include "rtabmap_ros/srv/get_map.hpp"
-#include "rtabmap_ros/srv/publish_map.hpp"
-#include "rtabmap_ros/msg/path.hpp"
+#include "mbari_rtabmap_msgs/msg/info.hpp"
+#include "mbari_rtabmap_msgs/msg/map_data.hpp"
+#include "mbari_rtabmap_msgs/msg/map_graph.hpp"
+#include "mbari_rtabmap_msgs/srv/get_map.hpp"
+#include "mbari_rtabmap_msgs/srv/publish_map.hpp"
+#include "mbari_rtabmap_msgs/msg/path.hpp"
 
 #include "rtabmap_ros/MsgConversion.h"
 
@@ -250,10 +250,10 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 		RCLCPP_INFO(get_logger(), "rtabmap: scan_cloud_max_points = %d", scanCloudMaxPoints_);
 	}
 
-	infoPub_ = this->create_publisher<rtabmap_ros::msg::Info>("info", 1);
-	mapDataPub_ = this->create_publisher<rtabmap_ros::msg::MapData>("mapData", 1);
-	mapGraphPub_ = this->create_publisher<rtabmap_ros::msg::MapGraph>("mapGraph", 1);
-	odomCachePub_ = this->create_publisher<rtabmap_ros::msg::MapGraph>("mapOdomCache", 1);
+	infoPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::Info>("info", 1);
+	mapDataPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::MapData>("mapData", 1);
+	mapGraphPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::MapGraph>("mapGraph", 1);
+	odomCachePub_ = this->create_publisher<mbari_rtabmap_msgs::msg::MapGraph>("mapOdomCache", 1);
 	landmarksPub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("landmarks", 1);
 	labelsPub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("labels", 1);
 	mapPathPub_ = this->create_publisher<nav_msgs::msg::Path>("mapPath", 1);
@@ -268,13 +268,13 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 
 	// planning topics
 	goalSub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal", 5, std::bind(&CoreWrapper::goalCallback, this, std::placeholders::_1));
-	goalNodeSub_ = this->create_subscription<rtabmap_ros::msg::Goal>("goal_node", 5, std::bind(&CoreWrapper::goalNodeCallback, this, std::placeholders::_1));
+	goalNodeSub_ = this->create_subscription<mbari_rtabmap_msgs::msg::Goal>("goal_node", 5, std::bind(&CoreWrapper::goalNodeCallback, this, std::placeholders::_1));
 	nextMetricGoalPub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("goal_out", 1);
 	goalReachedPub_ = this->create_publisher<std_msgs::msg::Bool>("goal_reached", 1);
 	globalPathPub_ = this->create_publisher<nav_msgs::msg::Path>("global_path", 1);
 	localPathPub_ = this->create_publisher<nav_msgs::msg::Path>("local_path", 1);
-	globalPathNodesPub_ = this->create_publisher<rtabmap_ros::msg::Path>("global_path_nodes", 1);
-	localPathNodesPub_ = this->create_publisher<rtabmap_ros::msg::Path>("local_path_nodes", 1);
+	globalPathNodesPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::Path>("global_path_nodes", 1);
+	localPathNodesPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::Path>("local_path_nodes", 1);
 
 	configPath_ = uReplaceChar(configPath_, '~', UDirectory::homeDir());
 	databasePath_ = uReplaceChar(databasePath_, '~', UDirectory::homeDir());
@@ -631,29 +631,29 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	resetSrv_ = this->create_service<std_srvs::srv::Empty>("reset", std::bind(&CoreWrapper::resetRtabmapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	pauseSrv_ = this->create_service<std_srvs::srv::Empty>("pause", std::bind(&CoreWrapper::pauseRtabmapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	resumeSrv_ = this->create_service<std_srvs::srv::Empty>("resume", std::bind(&CoreWrapper::resumeRtabmapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	loadDatabaseSrv_ = this->create_service<rtabmap_ros::srv::LoadDatabase>("load_database", std::bind(&CoreWrapper::loadDatabaseCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	loadDatabaseSrv_ = this->create_service<mbari_rtabmap_msgs::srv::LoadDatabase>("load_database", std::bind(&CoreWrapper::loadDatabaseCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	triggerNewMapSrv_ = this->create_service<std_srvs::srv::Empty>("trigger_new_map", std::bind(&CoreWrapper::triggerNewMapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	backupDatabase_ = this->create_service<std_srvs::srv::Empty>("backup", std::bind(&CoreWrapper::backupDatabaseCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	detectMoreLoopClosuresSrv_ = this->create_service<rtabmap_ros::srv::DetectMoreLoopClosures>("detect_more_loop_closures", std::bind(&CoreWrapper::detectMoreLoopClosuresCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	globalBundleAdjustmentSrv_ = this->create_service<rtabmap_ros::srv::GlobalBundleAdjustment>("global_bundle_adjustment", std::bind(&CoreWrapper::globalBundleAdjustmentCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	cleanupLocalGridsSrv_ = this->create_service<rtabmap_ros::srv::CleanupLocalGrids>("cleanup_local_grids", std::bind(&CoreWrapper::cleanupLocalGridsCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	detectMoreLoopClosuresSrv_ = this->create_service<mbari_rtabmap_msgs::srv::DetectMoreLoopClosures>("detect_more_loop_closures", std::bind(&CoreWrapper::detectMoreLoopClosuresCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	globalBundleAdjustmentSrv_ = this->create_service<mbari_rtabmap_msgs::srv::GlobalBundleAdjustment>("global_bundle_adjustment", std::bind(&CoreWrapper::globalBundleAdjustmentCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	cleanupLocalGridsSrv_ = this->create_service<mbari_rtabmap_msgs::srv::CleanupLocalGrids>("cleanup_local_grids", std::bind(&CoreWrapper::cleanupLocalGridsCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	setModeLocalizationSrv_ = this->create_service<std_srvs::srv::Empty>("set_mode_localization", std::bind(&CoreWrapper::setModeLocalizationCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	setModeMappingSrv_ = this->create_service<std_srvs::srv::Empty>("set_mode_mapping", std::bind(&CoreWrapper::setModeMappingCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	getNodeDataSrv_ = this->create_service<rtabmap_ros::srv::GetNodeData>("get_node_data", std::bind(&CoreWrapper::getNodeDataCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	getMapDataSrv_ = this->create_service<rtabmap_ros::srv::GetMap>("get_map_data", std::bind(&CoreWrapper::getMapDataCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	getMapData2Srv_ = this->create_service<rtabmap_ros::srv::GetMap2>("get_map_data2", std::bind(&CoreWrapper::getMapData2Callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	getNodeDataSrv_ = this->create_service<mbari_rtabmap_msgs::srv::GetNodeData>("get_node_data", std::bind(&CoreWrapper::getNodeDataCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	getMapDataSrv_ = this->create_service<mbari_rtabmap_msgs::srv::GetMap>("get_map_data", std::bind(&CoreWrapper::getMapDataCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	getMapData2Srv_ = this->create_service<mbari_rtabmap_msgs::srv::GetMap2>("get_map_data2", std::bind(&CoreWrapper::getMapData2Callback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	getMapSrv_ = this->create_service<nav_msgs::srv::GetMap>("get_map", std::bind(&CoreWrapper::getMapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	getProbMapSrv_ = this->create_service<nav_msgs::srv::GetMap>("get_prob_map", std::bind(&CoreWrapper::getProbMapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	publishMapDataSrv_ = this->create_service<rtabmap_ros::srv::PublishMap>("publish_map", std::bind(&CoreWrapper::publishMapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	publishMapDataSrv_ = this->create_service<mbari_rtabmap_msgs::srv::PublishMap>("publish_map", std::bind(&CoreWrapper::publishMapCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	getPlanSrv_ = this->create_service<nav_msgs::srv::GetPlan>("get_plan", std::bind(&CoreWrapper::getPlanCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	getPlanNodesSrv_ = this->create_service<rtabmap_ros::srv::GetPlan>("get_plan_nodes", std::bind(&CoreWrapper::getPlanNodesCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	setGoalSrv_ = this->create_service<rtabmap_ros::srv::SetGoal>("set_goal", std::bind(&CoreWrapper::setGoalCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	getPlanNodesSrv_ = this->create_service<mbari_rtabmap_msgs::srv::GetPlan>("get_plan_nodes", std::bind(&CoreWrapper::getPlanNodesCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	setGoalSrv_ = this->create_service<mbari_rtabmap_msgs::srv::SetGoal>("set_goal", std::bind(&CoreWrapper::setGoalCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	cancelGoalSrv_ = this->create_service<std_srvs::srv::Empty>("cancel_goal", std::bind(&CoreWrapper::cancelGoalCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	setLabelSrv_ = this->create_service<rtabmap_ros::srv::SetLabel>("set_label", std::bind(&CoreWrapper::setLabelCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	listLabelsSrv_ = this->create_service<rtabmap_ros::srv::ListLabels>("list_labels", std::bind(&CoreWrapper::listLabelsCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	removeLabelSrv_ = this->create_service<rtabmap_ros::srv::RemoveLabel>("remove_label", std::bind(&CoreWrapper::removeLabelCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	addLinkSrv_ = this->create_service<rtabmap_ros::srv::AddLink>("add_link", std::bind(&CoreWrapper::addLinkCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	getNodesInRadiusSrv_ = this->create_service<rtabmap_ros::srv::GetNodesInRadius>("get_nodes_in_radius", std::bind(&CoreWrapper::getNodesInRadiusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	setLabelSrv_ = this->create_service<mbari_rtabmap_msgs::srv::SetLabel>("set_label", std::bind(&CoreWrapper::setLabelCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	listLabelsSrv_ = this->create_service<mbari_rtabmap_msgs::srv::ListLabels>("list_labels", std::bind(&CoreWrapper::listLabelsCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	removeLabelSrv_ = this->create_service<mbari_rtabmap_msgs::srv::RemoveLabel>("remove_label", std::bind(&CoreWrapper::removeLabelCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	addLinkSrv_ = this->create_service<mbari_rtabmap_msgs::srv::AddLink>("add_link", std::bind(&CoreWrapper::addLinkCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	getNodesInRadiusSrv_ = this->create_service<mbari_rtabmap_msgs::srv::GetNodesInRadius>("get_nodes_in_radius", std::bind(&CoreWrapper::getNodesInRadiusCallback, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
 #ifdef WITH_OCTOMAP_MSGS
 #ifdef RTABMAP_OCTOMAP
@@ -793,7 +793,7 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	qosIMU = this->declare_parameter("qos_imu", qosIMU);
 	qosAbsoluteDepth = this->declare_parameter("qos_absolute_depth", qosAbsoluteDepth);
 
-	userDataAsyncSub_ = this->create_subscription<rtabmap_ros::msg::UserData>("user_data_async", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qosUserData_), std::bind(&CoreWrapper::userDataAsyncCallback, this, std::placeholders::_1));
+	userDataAsyncSub_ = this->create_subscription<mbari_rtabmap_msgs::msg::UserData>("user_data_async", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qosUserData_), std::bind(&CoreWrapper::userDataAsyncCallback, this, std::placeholders::_1));
 	globalPoseAsyncSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("global_pose", 5, std::bind(&CoreWrapper::globalPoseAsyncCallback, this, std::placeholders::_1));
 	gpsFixAsyncSub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gps/fix", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qosGPS), std::bind(&CoreWrapper::gpsFixAsyncCallback, this, std::placeholders::_1));
 #ifdef WITH_APRILTAG_MSGS
@@ -1148,17 +1148,17 @@ bool CoreWrapper::odomTFUpdate(const rclcpp::Time & stamp)
 
 void CoreWrapper::commonMultiCameraCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 		const std::vector<cv_bridge::CvImageConstPtr> & imageMsgs,
 		const std::vector<cv_bridge::CvImageConstPtr> & depthMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & cameraInfoMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & depthCameraInfoMsgs,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs,
-		const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > & localKeyPoints,
-		const std::vector<std::vector<rtabmap_ros::msg::Point3f> > & localPoints3d,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> & globalDescriptorMsgs,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> > & localKeyPoints,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> > & localPoints3d,
 		const std::vector<cv::Mat> & localDescriptors
         )
 {
@@ -1221,17 +1221,17 @@ void CoreWrapper::commonMultiCameraCallback(
 
 void CoreWrapper::commonMultiCameraCallbackImpl(
 		const std::string & odomFrameId,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 		const std::vector<cv_bridge::CvImageConstPtr> & imageMsgs,
 		const std::vector<cv_bridge::CvImageConstPtr> & depthMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & cameraInfoMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & depthCameraInfoMsgs,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs,
-		const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > & localKeyPointsMsgs,
-		const std::vector<std::vector<rtabmap_ros::msg::Point3f> > & localPoints3dMsgs,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> & globalDescriptorMsgs,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> > & localKeyPointsMsgs,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> > & localPoints3dMsgs,
 		const std::vector<cv::Mat> & localDescriptorsMsgs
         )
 {
@@ -1520,11 +1520,11 @@ void CoreWrapper::commonMultiCameraCallbackImpl(
 
 void CoreWrapper::commonLaserScanCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const rtabmap_ros::msg::GlobalDescriptor & globalDescriptor)
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const mbari_rtabmap_msgs::msg::GlobalDescriptor & globalDescriptor)
 {
 	UTimer timerConversion;
 	std::string odomFrameId = odomFrameId_;
@@ -1656,8 +1656,8 @@ void CoreWrapper::commonLaserScanCallback(
 
 void CoreWrapper::commonOdomCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg)
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg)
 {
 	UTimer timerConversion;
 	UASSERT(odomMsg.get());
@@ -1727,7 +1727,7 @@ void CoreWrapper::process(
 	if(rtabmap_.isIDsGenerated() || data.id() > 0)
 	{
 		// Add intermediate nodes?
-		for(std::list<std::pair<nav_msgs::msg::Odometry, rtabmap_ros::msg::OdomInfo> >::iterator iter=interOdoms_.begin(); iter!=interOdoms_.end();)
+		for(std::list<std::pair<nav_msgs::msg::Odometry, mbari_rtabmap_msgs::msg::OdomInfo> >::iterator iter=interOdoms_.begin(); iter!=interOdoms_.end();)
 		{
 			if(rclcpp::Time(iter->first.header.stamp.sec, iter->first.header.stamp.nanosec) < lastPoseStamp_)
 			{
@@ -2355,7 +2355,7 @@ std::map<int, Transform> CoreWrapper::filterNodesToAssemble(
 	return output;
 }
 
-void CoreWrapper::userDataAsyncCallback(const rtabmap_ros::msg::UserData::SharedPtr dataMsg)
+void CoreWrapper::userDataAsyncCallback(const mbari_rtabmap_msgs::msg::UserData::SharedPtr dataMsg)
 {
 	if(!paused_)
 	{
@@ -2549,11 +2549,11 @@ void CoreWrapper::interOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg
 {
 	if(!paused_)
 	{
-		interOdoms_.push_back(std::make_pair(*msg, rtabmap_ros::msg::OdomInfo()));
+		interOdoms_.push_back(std::make_pair(*msg, mbari_rtabmap_msgs::msg::OdomInfo()));
 	}
 }
 
-void CoreWrapper::interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const rtabmap_ros::msg::OdomInfo::ConstSharedPtr & msg2)
+void CoreWrapper::interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr & msg2)
 {
 	if(!paused_)
 	{
@@ -2777,7 +2777,7 @@ void CoreWrapper::goalCallback(const geometry_msgs::msg::PoseStamped::SharedPtr 
 	goalCommonCallback(0, "", "", targetPose, msg->header.stamp);
 }
 
-void CoreWrapper::goalNodeCallback(const rtabmap_ros::msg::Goal::SharedPtr msg)
+void CoreWrapper::goalNodeCallback(const mbari_rtabmap_msgs::msg::Goal::SharedPtr msg)
 {
 	if(msg->node_id == 0 && msg->node_label.empty())
 	{
@@ -2917,8 +2917,8 @@ void CoreWrapper::resumeRtabmapCallback(
 
 void CoreWrapper::loadDatabaseCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::LoadDatabase::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::LoadDatabase::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::LoadDatabase::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::LoadDatabase::Response>)
 {
 	RCLCPP_INFO(get_logger(), "LoadDatabase: Loading database (%s, clear=%s)...", req->database_path.c_str(), req->clear?"true":"false");
 	std::string newDatabasePath = uReplaceChar(req->database_path, '~', UDirectory::homeDir());
@@ -3110,7 +3110,7 @@ void CoreWrapper::republishMaps()
 
 	if(mapDataPub_->get_subscription_count()>0)
 	{
-		rtabmap_ros::msg::MapData::UniquePtr msg(new rtabmap_ros::msg::MapData);
+		mbari_rtabmap_msgs::msg::MapData::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapData);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -3126,7 +3126,7 @@ void CoreWrapper::republishMaps()
 
 	if(mapGraphPub_->get_subscription_count()>0)
 	{
-		rtabmap_ros::msg::MapGraph::UniquePtr msg(new rtabmap_ros::msg::MapGraph);
+		mbari_rtabmap_msgs::msg::MapGraph::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapGraph);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -3142,8 +3142,8 @@ void CoreWrapper::republishMaps()
 
 void CoreWrapper::detectMoreLoopClosuresCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::DetectMoreLoopClosures::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::DetectMoreLoopClosures::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::DetectMoreLoopClosures::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::DetectMoreLoopClosures::Response> res)
 {
 	RCLCPP_WARN(get_logger(), "Detect more loop closures service called");
 
@@ -3211,8 +3211,8 @@ void CoreWrapper::detectMoreLoopClosuresCallback(
 
 void CoreWrapper::cleanupLocalGridsCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::CleanupLocalGrids::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::CleanupLocalGrids::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::CleanupLocalGrids::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::CleanupLocalGrids::Response> res)
 {
 	RCLCPP_WARN(get_logger(), "Cleanup local grids service called");
 	UTimer timer;
@@ -3260,8 +3260,8 @@ void CoreWrapper::cleanupLocalGridsCallback(
 }
 void CoreWrapper::globalBundleAdjustmentCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GlobalBundleAdjustment::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GlobalBundleAdjustment::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GlobalBundleAdjustment::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GlobalBundleAdjustment::Response>)
 {
 	RCLCPP_WARN(get_logger(), "Global bundle adjustment service called");
 
@@ -3365,8 +3365,8 @@ void CoreWrapper::setLogError(
 
 void CoreWrapper::getNodeDataCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GetNodeData::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GetNodeData::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GetNodeData::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GetNodeData::Response> res)
 {
 	RCLCPP_INFO(get_logger(), "rtabmap: Getting node data (%d node(s), images=%s scan=%s grid=%s user_data=%s)...",
 			(int)req->ids.size(),
@@ -3386,7 +3386,7 @@ void CoreWrapper::getNodeDataCallback(
 
 		if(s.id()>0)
 		{
-			rtabmap_ros::msg::NodeData msg;
+			mbari_rtabmap_msgs::msg::NodeData msg;
 			rtabmap_ros::nodeDataToROS(s, msg);
 			res->data.push_back(msg);
 		}
@@ -3395,8 +3395,8 @@ void CoreWrapper::getNodeDataCallback(
 
 void CoreWrapper::getMapDataCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GetMap::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GetMap::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GetMap::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GetMap::Response> res)
 {
 	RCLCPP_INFO(this->get_logger(), "rtabmap: Getting map (global=%s optimized=%s graphOnly=%s)...",
 			req->global_map?"true":"false",
@@ -3434,8 +3434,8 @@ void CoreWrapper::getMapDataCallback(
 
 void CoreWrapper::getMapData2Callback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GetMap2::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GetMap2::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GetMap2::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GetMap2::Response> res)
 {
 	RCLCPP_INFO(get_logger(), "rtabmap: Getting map (global=%s optimized=%s with_images=%s with_scans=%s with_user_data=%s with_grids=%s)...",
 			req->global_map?"true":"false",
@@ -3558,8 +3558,8 @@ void CoreWrapper::getProbMapCallback(
 
 void CoreWrapper::publishMapCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::PublishMap::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::PublishMap::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::PublishMap::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::PublishMap::Response>)
 {
 	RCLCPP_INFO(this->get_logger(), "rtabmap: Publishing map...");
 
@@ -3586,7 +3586,7 @@ void CoreWrapper::publishMapCallback(
 
 		if(mapDataPub_->get_subscription_count())
 		{
-			rtabmap_ros::msg::MapData::UniquePtr msg(new rtabmap_ros::msg::MapData);
+			mbari_rtabmap_msgs::msg::MapData::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapData);
 			msg->header.stamp = stampNow;
 			msg->header.frame_id = mapFrameId_;
 
@@ -3601,7 +3601,7 @@ void CoreWrapper::publishMapCallback(
 
 		if(mapGraphPub_->get_subscription_count())
 		{
-			rtabmap_ros::msg::MapGraph::UniquePtr msg(new rtabmap_ros::msg::MapGraph);
+			mbari_rtabmap_msgs::msg::MapGraph::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapGraph);
 			msg->header.stamp = stampNow;
 			msg->header.frame_id = mapFrameId_;
 
@@ -3882,8 +3882,8 @@ void CoreWrapper::getPlanCallback(
 
 void CoreWrapper::getPlanNodesCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GetPlan::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GetPlan::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GetPlan::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GetPlan::Response> res)
 {
 	Transform pose;
 	if(req->goal_node <= 0)
@@ -3980,8 +3980,8 @@ void CoreWrapper::getPlanNodesCallback(
 
 void CoreWrapper::setGoalCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::SetGoal::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::SetGoal::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::SetGoal::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::SetGoal::Response> res)
 {
 	double planningTime = 0.0;
 	goalCommonCallback(req->node_id, req->node_label, req->frame_id, Transform(), now(), &planningTime);
@@ -4025,8 +4025,8 @@ void CoreWrapper::cancelGoalCallback(
 
 void CoreWrapper::setLabelCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::SetLabel::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::SetLabel::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::SetLabel::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::SetLabel::Response>)
 {
 	if(rtabmap_.labelLocation(req->node_id, req->node_label))
 	{
@@ -4054,8 +4054,8 @@ void CoreWrapper::setLabelCallback(
 
 void CoreWrapper::listLabelsCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::ListLabels::Request>,
-		std::shared_ptr<rtabmap_ros::srv::ListLabels::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::ListLabels::Request>,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::ListLabels::Response> res)
 {
 	if(rtabmap_.getMemory())
 	{
@@ -4068,8 +4068,8 @@ void CoreWrapper::listLabelsCallback(
 
 void CoreWrapper::removeLabelCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::RemoveLabel::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::RemoveLabel::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::RemoveLabel::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::RemoveLabel::Response>)
 {
 	if(rtabmap_.getMemory())
 	{
@@ -4090,8 +4090,8 @@ void CoreWrapper::removeLabelCallback(
 }
 
 void CoreWrapper::addLinkCallback(const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::AddLink::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::AddLink::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::AddLink::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::AddLink::Response>)
 {
 	if(rtabmap_.getMemory())
 	{
@@ -4102,8 +4102,8 @@ void CoreWrapper::addLinkCallback(const std::shared_ptr<rmw_request_id_t>,
 
 void CoreWrapper::getNodesInRadiusCallback(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::GetNodesInRadius::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::GetNodesInRadius::Response> res)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::GetNodesInRadius::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::GetNodesInRadius::Response> res)
 {
 	RCLCPP_INFO(get_logger(), "Get nodes in radius (%f): node_id=%d pose=(%f,%f,%f)", req->radius, req->node_id, req->x, req->y, req->z);
 	std::map<int, Transform> poses;
@@ -4142,7 +4142,7 @@ void CoreWrapper::publishStats(const rclcpp::Time & stamp)
 	if(infoPub_->get_subscription_count())
 	{
 		//RCLCPP_INFO(this->get_logger(), "Sending RtabmapInfo msg (last_id=%d)...", stat.refImageId());
-		rtabmap_ros::msg::Info::UniquePtr msg(new rtabmap_ros::msg::Info);
+		mbari_rtabmap_msgs::msg::Info::UniquePtr msg(new mbari_rtabmap_msgs::msg::Info);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -4152,7 +4152,7 @@ void CoreWrapper::publishStats(const rclcpp::Time & stamp)
 
 	if(mapDataPub_->get_subscription_count())
 	{
-		rtabmap_ros::msg::MapData::UniquePtr msg(new rtabmap_ros::msg::MapData);
+		mbari_rtabmap_msgs::msg::MapData::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapData);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -4225,7 +4225,7 @@ void CoreWrapper::publishStats(const rclcpp::Time & stamp)
 
 	if(mapGraphPub_->get_subscription_count())
 	{
-		rtabmap_ros::msg::MapGraph::UniquePtr msg(new rtabmap_ros::msg::MapGraph);
+		mbari_rtabmap_msgs::msg::MapGraph::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapGraph);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -4240,7 +4240,7 @@ void CoreWrapper::publishStats(const rclcpp::Time & stamp)
 
 	if(odomCachePub_->get_subscription_count())
 	{
-		rtabmap_ros::msg::MapGraph::UniquePtr msg(new rtabmap_ros::msg::MapGraph);
+		mbari_rtabmap_msgs::msg::MapGraph::UniquePtr msg(new mbari_rtabmap_msgs::msg::MapGraph);
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
@@ -4579,7 +4579,7 @@ void CoreWrapper::publishLocalPath(const rclcpp::Time & stamp)
 			if(localPathPub_->get_subscription_count() || localPathNodesPub_->get_subscription_count())
 			{
 				nav_msgs::msg::Path path;
-				rtabmap_ros::msg::Path pathNodes;
+				mbari_rtabmap_msgs::msg::Path pathNodes;
 				path.header.frame_id = pathNodes.header.frame_id = mapFrameId_;
 				path.header.stamp = pathNodes.header.stamp = stamp;
 				path.poses.resize(poses.size());
@@ -4618,7 +4618,7 @@ void CoreWrapper::publishGlobalPath(const rclcpp::Time & stamp)
 			Transform t = pose * rtabmap_.getPath().at(rtabmap_.getPathCurrentGoalIndex()).second.inverse();
 
 			nav_msgs::msg::Path path;
-			rtabmap_ros::msg::Path pathNodes;
+			mbari_rtabmap_msgs::msg::Path pathNodes;
 			path.header.frame_id = pathNodes.header.frame_id = mapFrameId_;
 			path.header.stamp = pathNodes.header.stamp = stamp;
 			path.poses.resize(rtabmap_.getPath().size());

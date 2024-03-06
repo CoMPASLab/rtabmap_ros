@@ -43,7 +43,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/Memory.h>
 #include <rtabmap/core/Signature.h>
 #include "rtabmap_ros/MsgConversion.h"
-#include "rtabmap_ros/msg/odom_info.hpp"
+#include "mbari_rtabmap_msgs/msg/odom_info.hpp"
 #include "rtabmap/utilite/UConversion.h"
 #include "rtabmap/utilite/ULogger.h"
 #include "rtabmap/utilite/UStl.h"
@@ -93,12 +93,12 @@ OdometryROS::OdometryROS(const std::string & name, const rclcpp::NodeOptions & o
 	qos_ = (rmw_qos_reliability_policy_t)qos;
 
 	odomPub_ = create_publisher<nav_msgs::msg::Odometry>("odom", rclcpp::QoS(1).reliability(qos_));
-	odomInfoPub_ = create_publisher<rtabmap_ros::msg::OdomInfo>("odom_info", rclcpp::QoS(1).reliability(qos_));
-	odomInfoLitePub_ = create_publisher<rtabmap_ros::msg::OdomInfo>("odom_info_lite", rclcpp::QoS(1).reliability(qos_));
+	odomInfoPub_ = create_publisher<mbari_rtabmap_msgs::msg::OdomInfo>("odom_info", rclcpp::QoS(1).reliability(qos_));
+	odomInfoLitePub_ = create_publisher<mbari_rtabmap_msgs::msg::OdomInfo>("odom_info_lite", rclcpp::QoS(1).reliability(qos_));
 	odomLocalMap_ = create_publisher<sensor_msgs::msg::PointCloud2>("odom_local_map", rclcpp::QoS(1).reliability(qos_));
 	odomLocalScanMap_ = create_publisher<sensor_msgs::msg::PointCloud2>("odom_local_scan_map", rclcpp::QoS(1).reliability(qos_));
 	odomLastFrame_ = create_publisher<sensor_msgs::msg::PointCloud2>("odom_last_frame", rclcpp::QoS(1).reliability(qos_));
-	odomRgbdImagePub_ = create_publisher<rtabmap_ros::msg::RGBDImage>("odom_rgbd_image", rclcpp::QoS(1).reliability(qos_));
+	odomRgbdImagePub_ = create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("odom_rgbd_image", rclcpp::QoS(1).reliability(qos_));
 
 	tfBuffer_ = std::make_shared<tf2_ros::Buffer>(this->get_clock());
 	//auto timer_interface = std::make_shared<tf2_ros::CreateTimerROS>(
@@ -334,7 +334,7 @@ void OdometryROS::init(bool stereoParams, bool visParams, bool icpParams)
 	}
 
 	resetSrv_ = this->create_service<std_srvs::srv::Empty>("reset_odom", std::bind(&OdometryROS::resetOdom, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
-	resetToPoseSrv_ = this->create_service<rtabmap_ros::srv::ResetPose>("reset_odom_to_pose", std::bind(&OdometryROS::resetToPose, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
+	resetToPoseSrv_ = this->create_service<mbari_rtabmap_msgs::srv::ResetPose>("reset_odom_to_pose", std::bind(&OdometryROS::resetToPose, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	pauseSrv_ = this->create_service<std_srvs::srv::Empty>("pause_odom", std::bind(&OdometryROS::pause, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 	resumeSrv_ = this->create_service<std_srvs::srv::Empty>("resume_odom", std::bind(&OdometryROS::resume, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3));
 
@@ -852,7 +852,7 @@ void OdometryROS::processData(SensorData & data, const std_msgs::msg::Header & h
 
 	if(odomInfoPub_->get_subscription_count() || odomInfoLitePub_->get_subscription_count())
 	{
-		rtabmap_ros::msg::OdomInfo infoMsg;
+		mbari_rtabmap_msgs::msg::OdomInfo infoMsg;
 		odomInfoToROS(info, infoMsg, odomInfoPub_->get_subscription_count()==0);
 		infoMsg.header.stamp = header.stamp; // use corresponding time stamp to image
 		infoMsg.header.frame_id = odomFrameId_;
@@ -880,7 +880,7 @@ void OdometryROS::processData(SensorData & data, const std_msgs::msg::Header & h
 	{
 		if(!header.frame_id.empty())
 		{
-			rtabmap_ros::msg::RGBDImage msg;
+			mbari_rtabmap_msgs::msg::RGBDImage msg;
 			rtabmap_ros::rgbdImageToROS(data, msg, header.frame_id);
 			msg.header = header; // use corresponding time stamp to image
 			odomRgbdImagePub_->publish(msg);
@@ -925,8 +925,8 @@ void OdometryROS::resetOdom(
 
 void OdometryROS::resetToPose(
 		const std::shared_ptr<rmw_request_id_t>,
-		const std::shared_ptr<rtabmap_ros::srv::ResetPose::Request> req,
-		std::shared_ptr<rtabmap_ros::srv::ResetPose::Response>)
+		const std::shared_ptr<mbari_rtabmap_msgs::srv::ResetPose::Request> req,
+		std::shared_ptr<mbari_rtabmap_msgs::srv::ResetPose::Response>)
 {
 	Transform pose(req->x, req->y, req->z, req->roll, req->pitch, req->yaw);
 	RCLCPP_INFO(this->get_logger(), "visual_odometry: reset odom to pose %s!", pose.prettyPrint().c_str());

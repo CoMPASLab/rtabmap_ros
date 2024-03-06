@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/image_encodings.hpp>
 
 #include "rtabmap_ros/MsgConversion.h"
-#include <rtabmap_ros/msg/rgbd_images.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_images.hpp>
 
 #include <rtabmap/core/util3d.h>
 #include <rtabmap/core/util2d.h>
@@ -258,7 +258,7 @@ void RGBDOdometry::onOdomInit()
 		}
 		else if(rgbdCameras == 0)
 		{
-			rgbdxSub_ = create_subscription<rtabmap_ros::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&RGBDOdometry::callbackRGBDX, this, std::placeholders::_1));
+			rgbdxSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&RGBDOdometry::callbackRGBDX, this, std::placeholders::_1));
 
 			subscribedTopicsMsg = uFormat("\n%s subscribed to:\n   %s",
 					get_name(),
@@ -266,7 +266,7 @@ void RGBDOdometry::onOdomInit()
 		}
 		else
 		{
-			rgbdSub_ = create_subscription<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&RGBDOdometry::callbackRGBD, this, std::placeholders::_1));
+			rgbdSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&RGBDOdometry::callbackRGBD, this, std::placeholders::_1));
 
 			subscribedTopicsMsg =
 					uFormat("\n%s subscribed to:\n   %s",
@@ -519,7 +519,7 @@ void RGBDOdometry::callback(
 }
 
 void RGBDOdometry::callbackRGBDX(
-		const rtabmap_ros::msg::RGBDImages::ConstSharedPtr images)
+		const mbari_rtabmap_msgs::msg::RGBDImages::ConstSharedPtr images)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -543,7 +543,7 @@ void RGBDOdometry::callbackRGBDX(
 }
 
 void RGBDOdometry::callbackRGBD(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -559,8 +559,8 @@ void RGBDOdometry::callbackRGBD(
 }
 
 void RGBDOdometry::callbackRGBD2(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -578,9 +578,9 @@ void RGBDOdometry::callbackRGBD2(
 }
 
 void RGBDOdometry::callbackRGBD3(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -600,10 +600,10 @@ void RGBDOdometry::callbackRGBD3(
 }
 
 void RGBDOdometry::callbackRGBD4(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -625,11 +625,11 @@ void RGBDOdometry::callbackRGBD4(
 }
 
 void RGBDOdometry::callbackRGBD5(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image5)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image5)
 {
 	callbackCalled();
 	if(!this->isPaused())

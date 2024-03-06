@@ -31,10 +31,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap_ros/visibility.h>
 #include <rclcpp/rclcpp.hpp>
 #include <rclcpp/executor.hpp>
-#include "rtabmap_ros/msg/info.hpp"
-#include "rtabmap_ros/msg/map_data.hpp"
-#include "rtabmap_ros/msg/odom_info.hpp"
-#include "rtabmap_ros/msg/goal.hpp"
+#include "mbari_rtabmap_msgs/msg/info.hpp"
+#include "mbari_rtabmap_msgs/msg/map_data.hpp"
+#include "mbari_rtabmap_msgs/msg/odom_info.hpp"
+#include "mbari_rtabmap_msgs/msg/goal.hpp"
 #include "rtabmap/utilite/UEventsHandler.h"
 #include "rtabmap/core/Transform.h"
 
@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <geometry_msgs/msg/twist_stamped.hpp>
 #include <nav_msgs/msg/path.hpp>
 #include <std_msgs/msg/bool.hpp>
-#include "rtabmap_ros/srv/get_map.hpp"
+#include "mbari_rtabmap_msgs/srv/get_map.hpp"
 
 #include <rtabmap_ros/CommonDataSubscriber.h>
 
@@ -69,54 +69,54 @@ protected:
 	virtual bool handleEvent(UEvent * anEvent);
 
 private:
-	void infoMapCallback(const rtabmap_ros::msg::Info::ConstSharedPtr infoMsg, const rtabmap_ros::msg::MapData::ConstSharedPtr mapMsg);
-	void goalPathCallback(const rtabmap_ros::msg::Goal::ConstSharedPtr goalMsg, const nav_msgs::msg::Path::ConstSharedPtr pathMsg);
+	void infoMapCallback(const mbari_rtabmap_msgs::msg::Info::ConstSharedPtr infoMsg, const mbari_rtabmap_msgs::msg::MapData::ConstSharedPtr mapMsg);
+	void goalPathCallback(const mbari_rtabmap_msgs::msg::Goal::ConstSharedPtr goalMsg, const nav_msgs::msg::Path::ConstSharedPtr pathMsg);
 	void goalReachedCallback(const std_msgs::msg::Bool::ConstSharedPtr value);
 
 	virtual void commonMultiCameraCallback(
 			const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-			const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+			const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 			const std::vector<cv_bridge::CvImageConstPtr> & imageMsgs,
 			const std::vector<cv_bridge::CvImageConstPtr> & depthMsgs,
 			const std::vector<sensor_msgs::msg::CameraInfo> & cameraInfoMsgs,
 			const std::vector<sensor_msgs::msg::CameraInfo> & depthCameraInfoMsgs,
 			const sensor_msgs::msg::LaserScan & scanMsg,
 			const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-			const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-			const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs = std::vector<rtabmap_ros::msg::GlobalDescriptor>(),
-			const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > & localKeyPoints = std::vector<std::vector<rtabmap_ros::msg::KeyPoint> >(),
-			const std::vector<std::vector<rtabmap_ros::msg::Point3f> > & localPoints3d = std::vector<std::vector<rtabmap_ros::msg::Point3f> >(),
+			const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+			const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> & globalDescriptorMsgs = std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor>(),
+			const std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> > & localKeyPoints = std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> >(),
+			const std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> > & localPoints3d = std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> >(),
 			const std::vector<cv::Mat> & localDescriptors = std::vector<cv::Mat>());
 	virtual void commonStereoCallback(
 			const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-			const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+			const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 			const cv_bridge::CvImageConstPtr& leftImageMsg,
 			const cv_bridge::CvImageConstPtr& rightImageMsg,
 			const sensor_msgs::msg::CameraInfo& leftCamInfoMsg,
 			const sensor_msgs::msg::CameraInfo& rightCamInfoMsg,
 			const sensor_msgs::msg::LaserScan & scan2dMsg,
 			const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-			const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-			const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs = std::vector<rtabmap_ros::msg::GlobalDescriptor>(),
-			const std::vector<rtabmap_ros::msg::KeyPoint> & localKeyPoints = std::vector<rtabmap_ros::msg::KeyPoint>(),
-			const std::vector<rtabmap_ros::msg::Point3f> & localPoints3d = std::vector<rtabmap_ros::msg::Point3f>(),
+			const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+			const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> & globalDescriptorMsgs = std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor>(),
+			const std::vector<mbari_rtabmap_msgs::msg::KeyPoint> & localKeyPoints = std::vector<mbari_rtabmap_msgs::msg::KeyPoint>(),
+			const std::vector<mbari_rtabmap_msgs::msg::Point3f> & localPoints3d = std::vector<mbari_rtabmap_msgs::msg::Point3f>(),
 			const cv::Mat & localDescriptors = cv::Mat());
 	virtual void commonLaserScanCallback(
 			const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-			const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+			const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 			const sensor_msgs::msg::LaserScan & scan2dMsg,
 			const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-			const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-			const rtabmap_ros::msg::GlobalDescriptor & globalDescriptor = rtabmap_ros::msg::GlobalDescriptor());
+			const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+			const mbari_rtabmap_msgs::msg::GlobalDescriptor & globalDescriptor = mbari_rtabmap_msgs::msg::GlobalDescriptor());
 
 	virtual void commonOdomCallback(
 			const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-			const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
-			const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg);
+			const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
+			const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg);
 
 	void defaultCallback(const nav_msgs::msg::Odometry::SharedPtr & odomMsg);
 
-	void processRequestedMap(const rtabmap_ros::msg::MapData & map);
+	void processRequestedMap(const mbari_rtabmap_msgs::msg::MapData & map);
 	bool callEmptyService(const std::string & name);
 	bool callMapDataService(const std::string & name, bool global, bool optimized, bool graphOnly);
 
@@ -136,20 +136,20 @@ private:
 	std::shared_ptr<tf2_ros::Buffer> tfBuffer_;
 	std::shared_ptr<tf2_ros::TransformListener> tfListener_;
 
-	message_filters::Subscriber<rtabmap_ros::msg::Info> infoTopic_;
-	message_filters::Subscriber<rtabmap_ros::msg::MapData> mapDataTopic_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::Info> infoTopic_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::MapData> mapDataTopic_;
 
-	message_filters::Subscriber<rtabmap_ros::msg::Goal> goalTopic_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::Goal> goalTopic_;
 	message_filters::Subscriber<nav_msgs::msg::Path> pathTopic_;
 	rclcpp::Subscription<std_msgs::msg::Bool>::SharedPtr goalReachedTopic_;
 
 	typedef message_filters::sync_policies::ExactTime<
-			rtabmap_ros::msg::Info,
-			rtabmap_ros::msg::MapData> MyInfoMapSyncPolicy;
+			mbari_rtabmap_msgs::msg::Info,
+			mbari_rtabmap_msgs::msg::MapData> MyInfoMapSyncPolicy;
 	message_filters::Synchronizer<MyInfoMapSyncPolicy> * infoMapSync_;
 
 	typedef message_filters::sync_policies::ExactTime<
-			rtabmap_ros::msg::Goal,
+			mbari_rtabmap_msgs::msg::Goal,
 			nav_msgs::msg::Path> MyGoalPathSyncPolicy;
 	message_filters::Synchronizer<MyGoalPathSyncPolicy> * goalPathSync_;
 };

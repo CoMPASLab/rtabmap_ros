@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/subscriber.h>
 
-#include "rtabmap_ros/msg/rgbd_image.hpp"
-#include "rtabmap_ros/msg/rgbd_images.hpp"
+#include "mbari_rtabmap_msgs/msg/rgbd_image.hpp"
+#include "mbari_rtabmap_msgs/msg/rgbd_images.hpp"
 #include "rtabmap_ros/CommonDataSubscriber.h"
 
 namespace rtabmap_ros
@@ -59,13 +59,13 @@ public:
 			const sensor_msgs::msg::CameraInfo::ConstSharedPtr cameraInfo);
 
 private:
-	DATA_SYNCS2(rgbd2, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS3(rgbd3, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS4(rgbd4, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS5(rgbd5, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS6(rgbd6, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS7(rgbd7, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
-	DATA_SYNCS8(rgbd8, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage)
+	DATA_SYNCS2(rgbd2, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS3(rgbd3, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS4(rgbd4, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS5(rgbd5, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS6(rgbd6, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS7(rgbd7, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
+	DATA_SYNCS8(rgbd8, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage)
 
 private:
 	std::thread * warningThread_;
@@ -73,9 +73,9 @@ private:
 
 	std::string subscribedTopicsMsg_;
 
-	rclcpp::Publisher<rtabmap_ros::msg::RGBDImages>::SharedPtr rgbdImagesPub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::RGBDImages>::SharedPtr rgbdImagesPub_;
 
-	std::vector<message_filters::Subscriber<rtabmap_ros::msg::RGBDImage>*> rgbdSubs_;
+	std::vector<message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage>*> rgbdSubs_;
 };
 
 }

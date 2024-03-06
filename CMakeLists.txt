@@ -24,6 +24,7 @@ find_package(rclcpp_components REQUIRED)
 # uncomment the following section in order to fill in
 # further dependencies manually.
 # find_package(<dependency> REQUIRED)
+find_package(mbari_rtabmap_msgs 0.20.20 REQUIRED)
 find_package(cv_bridge REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
@@ -118,60 +119,6 @@ IF(RTABMAP_GUI OR rviz_default_plugins_FOUND)
    ENDIF()   
 ENDIF(RTABMAP_GUI OR rviz_default_plugins_FOUND)
 
-#######################################
-## Declare ROS messages and services ##
-#######################################
-
-# declare the message files to generate code for
- set(msg_files
-   "msg/Info.msg"
-   "msg/KeyPoint.msg"
-   "msg/GlobalDescriptor.msg"
-   "msg/ScanDescriptor.msg"
-   "msg/MapData.msg"
-   "msg/MapGraph.msg"
-   "msg/NodeData.msg"
-   "msg/Link.msg"
-   "msg/OdomInfo.msg"
-   "msg/Point2f.msg"
-   "msg/Point3f.msg"
-   "msg/Goal.msg"
-   "msg/RGBDImage.msg"
-   "msg/RGBDImages.msg"
-   "msg/UserData.msg"
-   "msg/GPS.msg"
-   "msg/Path.msg"
-   "msg/EnvSensor.msg"
-   "msg/CameraModel.msg"
-   "msg/CameraModels.msg"
- )
-
-# declare the service files to generate code for
- set(srv_files
-   "srv/GetMap.srv"
-   "srv/GetMap2.srv"
-   "srv/ListLabels.srv"
-   "srv/PublishMap.srv"
-   "srv/ResetPose.srv"
-   "srv/SetGoal.srv"
-   "srv/SetLabel.srv"
-   "srv/RemoveLabel.srv"
-   "srv/GetPlan.srv"
-   "srv/AddLink.srv"
-   "srv/GetNodeData.srv"
-   "srv/GetNodesInRadius.srv"
-   "srv/LoadDatabase.srv"
-   "srv/DetectMoreLoopClosures.srv"
-   "srv/GlobalBundleAdjustment.srv"
-   "srv/CleanupLocalGrids.srv"
- )
-
-## Generate messages and services
- rosidl_generate_interfaces(${PROJECT_NAME}
-   ${msg_files}
-   ${srv_files}
-   DEPENDENCIES geometry_msgs std_msgs sensor_msgs std_srvs visualization_msgs image_geometry
- )
 ament_export_dependencies(rosidl_default_runtime)
 
 #add dynamic reconfigure api
@@ -222,6 +169,7 @@ SET(Libraries
    cv_bridge
    rclcpp
    rclcpp_components
+   mbari_rtabmap_msgs
    sensor_msgs
    std_msgs
    nav_msgs
@@ -344,25 +292,10 @@ ament_target_dependencies(rtabmap_common ${Libraries})
 ament_target_dependencies(rtabmap_sync ${Libraries})
 ament_target_dependencies(rtabmap_plugins ${Libraries})
 
-if("$ENV{ROS_DISTRO}" STRGREATER_EQUAL "humble")
-  rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-  target_link_libraries(rtabmap_common ${cpp_typesupport_target} ${RTABMap_LIBRARIES})
-  target_link_libraries(rtabmap_sync rtabmap_common ${cpp_typesupport_targeT} ${RTABMap_LIBRARIES})
-  target_link_libraries(rtabmap_plugins rtabmap_common ${cpp_typesupport_target} ${RTABMap_LIBRARIES})
-else()
-  # foxy, galatic
-  target_link_libraries(rtabmap_common ${RTABMap_LIBRARIES})
-  target_link_libraries(rtabmap_sync rtabmap_common ${RTABMap_LIBRARIES})
-  target_link_libraries(rtabmap_plugins rtabmap_common ${RTABMap_LIBRARIES})
-
-  rosidl_target_interfaces(rtabmap_common ${PROJECT_NAME} "rosidl_typesupport_cpp")
-  rosidl_target_interfaces(rtabmap_sync ${PROJECT_NAME} "rosidl_typesupport_cpp")
-  rosidl_target_interfaces(rtabmap_plugins ${PROJECT_NAME} "rosidl_typesupport_cpp")
-
-  function(rosidl_get_typesupport_target var generate_interfaces_target typesupport_name)
-    rosidl_target_interfaces(${var} ${generate_interfaces_target} ${typesupport_name})
-  endfunction()
+target_link_libraries(rtabmap_common ${RTABMap_LIBRARIES})
+target_link_libraries(rtabmap_sync rtabmap_common ${RTABMap_LIBRARIES})
+target_link_libraries(rtabmap_plugins rtabmap_common ${RTABMap_LIBRARIES})
+if("$ENV{ROS_DISTRO}" STRLESS "humble")
   add_definitions(-DPRE_ROS_HUMBLE)
 endif()
 
@@ -519,53 +452,6 @@ add_executable(rtabmap_pointcloud_to_depthimage src/PointCloudToDepthImageNode.c
 ament_target_dependencies(rtabmap_pointcloud_to_depthimage ${Libraries})
 target_link_libraries(rtabmap_pointcloud_to_depthimage rtabmap_plugins ${RTABMap_LIBRARIES})
 set_target_properties(rtabmap_pointcloud_to_depthimage PROPERTIES OUTPUT_NAME "pointcloud_to_depthimage")
-
-# Only required when using messages built from the same package
-# https://index.ros.org/doc/ros2/Tutorials/Rosidl-Tutorial/
-get_default_rmw_implementation(rmw_implementation)
-find_package("${rmw_implementation}" REQUIRED)
-get_rmw_typesupport(typesupport_impls "${rmw_implementation}" LANGUAGE "cpp")
-
-foreach(typesupport_impl ${typesupport_impls})
-  rosidl_get_typesupport_target(rtabmap_rgbd_odometry
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_stereo_odometry
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_icp_odometry
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_rgbd_relay
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_rgbd_sync
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_rgbdx_sync
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_rgb_sync
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_stereo_sync
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_pointcloud_to_depthimage
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap_point_cloud_xyzrgb
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  rosidl_get_typesupport_target(rtabmap
-    ${PROJECT_NAME} ${typesupport_impl}
-  )
-  IF(RTABMAP_GUI)
-    rosidl_get_typesupport_target(rtabmapviz
-      ${PROJECT_NAME} ${typesupport_impl}
-    )
-  ENDIF()
-endforeach()
 
 # If rviz is found, add plugins
 IF(rviz_default_plugins_FOUND)

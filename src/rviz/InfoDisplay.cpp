@@ -52,7 +52,7 @@ void InfoDisplay::onInitialize()
 	this->setStatusStd(rviz_common::properties::StatusProperty::Ok, "Proximity detections", "0");
 }
 
-void InfoDisplay::processMessage( const rtabmap_ros::msg::Info::ConstSharedPtr msg )
+void InfoDisplay::processMessage( const mbari_rtabmap_msgs::msg::Info::ConstSharedPtr msg )
 {
 	{
 		std::unique_lock<std::mutex> lock(info_mutex_);

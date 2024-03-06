@@ -40,9 +40,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/msg/imu.hpp>
 #include <sensor_msgs/msg/point_cloud2.hpp>
 
-#include <rtabmap_ros/msg/odom_info.hpp>
-#include <rtabmap_ros/msg/rgbd_image.hpp>
-#include <rtabmap_ros/srv/reset_pose.hpp>
+#include <mbari_rtabmap_msgs/msg/odom_info.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_image.hpp>
+#include <mbari_rtabmap_msgs/srv/reset_pose.hpp>
 #include <rtabmap/core/SensorData.h>
 #include <rtabmap/core/Parameters.h>
 
@@ -65,7 +65,7 @@ public:
 	void processData(rtabmap::SensorData & data, const std_msgs::msg::Header & header);
 
 	void resetOdom(const std::shared_ptr<rmw_request_id_t>, const std::shared_ptr<std_srvs::srv::Empty::Request>, std::shared_ptr<std_srvs::srv::Empty::Response>);
-	void resetToPose(const std::shared_ptr<rmw_request_id_t>, const std::shared_ptr<rtabmap_ros::srv::ResetPose::Request>, std::shared_ptr<rtabmap_ros::srv::ResetPose::Response>);
+	void resetToPose(const std::shared_ptr<rmw_request_id_t>, const std::shared_ptr<mbari_rtabmap_msgs::srv::ResetPose::Request>, std::shared_ptr<mbari_rtabmap_msgs::srv::ResetPose::Response>);
 	void pause(const std::shared_ptr<rmw_request_id_t>,	const std::shared_ptr<std_srvs::srv::Empty::Request>, std::shared_ptr<std_srvs::srv::Empty::Response>);
 	void resume(const std::shared_ptr<rmw_request_id_t>, const std::shared_ptr<std_srvs::srv::Empty::Request>, std::shared_ptr<std_srvs::srv::Empty::Response>);
 	void setLogDebug(const std::shared_ptr<rmw_request_id_t>, const std::shared_ptr<std_srvs::srv::Empty::Request>, std::shared_ptr<std_srvs::srv::Empty::Response>);
@@ -120,15 +120,15 @@ private:
 	rtabmap::ParametersMap parameters_;
 
 	rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr odomPub_;
-	rclcpp::Publisher<rtabmap_ros::msg::OdomInfo>::SharedPtr odomInfoPub_;
-	rclcpp::Publisher<rtabmap_ros::msg::OdomInfo>::SharedPtr odomInfoLitePub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::OdomInfo>::SharedPtr odomInfoPub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::OdomInfo>::SharedPtr odomInfoLitePub_;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr odomLocalMap_;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr odomLocalScanMap_;
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr odomLastFrame_;
-	rclcpp::Publisher<rtabmap_ros::msg::RGBDImage>::SharedPtr odomRgbdImagePub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr odomRgbdImagePub_;
 
 	rclcpp::Service<std_srvs::srv::Empty>::SharedPtr resetSrv_;
-	rclcpp::Service<rtabmap_ros::srv::ResetPose>::SharedPtr resetToPoseSrv_;
+	rclcpp::Service<mbari_rtabmap_msgs::srv::ResetPose>::SharedPtr resetToPoseSrv_;
 	rclcpp::Service<std_srvs::srv::Empty>::SharedPtr pauseSrv_;
 	rclcpp::Service<std_srvs::srv::Empty>::SharedPtr resumeSrv_;
 	rclcpp::Service<std_srvs::srv::Empty>::SharedPtr setLogDebugSrv_;

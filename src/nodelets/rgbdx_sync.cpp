@@ -62,14 +62,14 @@ RGBDXSync::RGBDXSync(const rclcpp::NodeOptions & options) :
 	RCLCPP_INFO(this->get_logger(), "%s: qos          = %d", get_name(), qos);
 	RCLCPP_INFO(this->get_logger(), "%s: rgbd_cameras = %d", get_name(), rgbdCameras);
 
-	rgbdImagesPub_ = this->create_publisher<rtabmap_ros::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImagesPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 
 	UASSERT(rgbdCameras>=2 && rgbdCameras<=8);
 
 	rgbdSubs_.resize(rgbdCameras);
 	for(int i=0; i<rgbdCameras; ++i)
 	{
-		rgbdSubs_[i] = new message_filters::Subscriber<rtabmap_ros::msg::RGBDImage>;
+		rgbdSubs_[i] = new message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage>;
 		rgbdSubs_[i]->subscribe(this, uFormat("rgbd_image%d", i), rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos).get_rmw_qos_profile());
 	}
 
@@ -174,11 +174,11 @@ RGBDXSync::~RGBDXSync()
 }
 
 void RGBDXSync::rgbd2Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(2);
 	output.rgbd_images[0]=(*image0);
@@ -187,12 +187,12 @@ void RGBDXSync::rgbd2Callback(
 }
 
 void RGBDXSync::rgbd3Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(3);
 	output.rgbd_images[0]=(*image0);
@@ -202,13 +202,13 @@ void RGBDXSync::rgbd3Callback(
 }
 
 void RGBDXSync::rgbd4Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(4);
 	output.rgbd_images[0]=(*image0);
@@ -219,14 +219,14 @@ void RGBDXSync::rgbd4Callback(
 }
 
 void RGBDXSync::rgbd5Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(5);
 	output.rgbd_images[0]=(*image0);
@@ -238,15 +238,15 @@ void RGBDXSync::rgbd5Callback(
 }
 
 void RGBDXSync::rgbd6Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image5)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image5)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(6);
 	output.rgbd_images[0]=(*image0);
@@ -259,16 +259,16 @@ void RGBDXSync::rgbd6Callback(
 }
 
 void RGBDXSync::rgbd7Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image5,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image6)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image5,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image6)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(7);
 	output.rgbd_images[0]=(*image0);
@@ -282,17 +282,17 @@ void RGBDXSync::rgbd7Callback(
 }
 
 void RGBDXSync::rgbd8Callback(
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image0,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image1,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image5,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image6,
-		  const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image7)
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image0,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image1,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image5,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image6,
+		  const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image7)
 {
 	callbackCalled_ = true;
-	rtabmap_ros::msg::RGBDImages output;
+	mbari_rtabmap_msgs::msg::RGBDImages output;
 	output.header = image0->header;
 	output.rgbd_images.resize(8);
 	output.rgbd_images[0]=(*image0);

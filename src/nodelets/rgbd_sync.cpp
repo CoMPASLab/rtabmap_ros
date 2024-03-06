@@ -79,8 +79,8 @@ RGBDSync::RGBDSync(const rclcpp::NodeOptions & options) :
 	RCLCPP_INFO(this->get_logger(), "%s: decimation = %d", get_name(), decimation_);
 	RCLCPP_INFO(this->get_logger(), "%s: compressed_rate = %f", get_name(), compressedRate_);
 
-	rgbdImagePub_ = this->create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
-	rgbdImageCompressedPub_ = this->create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImagePub_ = this->create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImageCompressedPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 
 	if(approxSync)
 	{
@@ -163,7 +163,7 @@ void RGBDSync::callback(
 					depthStamp);
 		}
 
-		rtabmap_ros::msg::RGBDImage::UniquePtr msg(new rtabmap_ros::msg::RGBDImage);
+		mbari_rtabmap_msgs::msg::RGBDImage::UniquePtr msg(new mbari_rtabmap_msgs::msg::RGBDImage);
 		msg->header.frame_id = cameraInfo->header.frame_id;
 		msg->header.stamp = rgbStamp>depthStamp?image->header.stamp:depth->header.stamp;
 		if(decimation_>1 && !(depth->width % decimation_ == 0 && depth->height % decimation_ == 0))
@@ -221,7 +221,7 @@ void RGBDSync::callback(
 			{
 				lastCompressedPublished_ = now();
 
-				rtabmap_ros::msg::RGBDImage::UniquePtr msgCompressed(new rtabmap_ros::msg::RGBDImage);
+				mbari_rtabmap_msgs::msg::RGBDImage::UniquePtr msgCompressed(new mbari_rtabmap_msgs::msg::RGBDImage);
 				msgCompressed->header = msg->header;
 				msgCompressed->rgb_camera_info = msg->rgb_camera_info;
 				msgCompressed->depth_camera_info = msg->depth_camera_info;

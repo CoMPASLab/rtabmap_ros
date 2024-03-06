@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 #include <rtabmap_ros/visibility.h>
-#include <rtabmap_ros/msg/info.hpp>
+#include <mbari_rtabmap_msgs/msg/info.hpp>
 
 #include <rviz_common/display.hpp>
 #include "rviz_common/message_filter_display.hpp"
@@ -44,7 +44,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 namespace rtabmap_ros
 {
 
-class RTABMAP_ROS_PUBLIC InfoDisplay: public rviz_common::MessageFilterDisplay<rtabmap_ros::msg::Info>
+class RTABMAP_ROS_PUBLIC InfoDisplay: public rviz_common::MessageFilterDisplay<mbari_rtabmap_msgs::msg::Info>
 {
 Q_OBJECT
 public:
@@ -59,7 +59,7 @@ protected:
 	virtual void onInitialize();
 
 	/** @brief Process a single message.  Overridden from MessageFilterDisplay. */
-	virtual void processMessage( const rtabmap_ros::msg::Info::ConstSharedPtr cloud );
+	virtual void processMessage( const mbari_rtabmap_msgs::msg::Info::ConstSharedPtr cloud );
 
 private:
 	QString info_;

@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <message_filters/sync_policies/exact_time.h>
 #include <message_filters/subscriber.h>
 
-#include "rtabmap_ros/msg/rgbd_image.hpp"
+#include "mbari_rtabmap_msgs/msg/rgbd_image.hpp"
 
 namespace rtabmap_ros
 {
@@ -67,8 +67,8 @@ private:
 
 	std::string subscribedTopicsMsg_;
 
-	rclcpp::Publisher<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdImagePub_;
-	rclcpp::Publisher<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdImageCompressedPub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdImagePub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdImageCompressedPub_;
 
 	image_transport::SubscriberFilter imageSub_;
 	image_transport::SubscriberFilter imageDepthSub_;
