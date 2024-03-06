@@ -49,9 +49,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/utilite/UTimer.h>
 
 #include "rtabmap_ros/MsgConversion.h"
-#include "rtabmap_ros/srv/set_goal.hpp"
-#include "rtabmap_ros/srv/set_label.hpp"
-#include "rtabmap_ros/srv/remove_label.hpp"
+#include "mbari_rtabmap_msgs/srv/set_goal.hpp"
+#include "mbari_rtabmap_msgs/srv/set_label.hpp"
+#include "mbari_rtabmap_msgs/srv/remove_label.hpp"
 #include "rtabmap_ros/PreferencesDialogROS.h"
 
 float max3( const float& a, const float& b, const float& c)
@@ -170,8 +170,8 @@ GuiWrapper::~GuiWrapper()
 }
 
 void GuiWrapper::infoMapCallback(
-		const rtabmap_ros::msg::Info::ConstSharedPtr infoMsg,
-		const rtabmap_ros::msg::MapData::ConstSharedPtr mapMsg)
+		const mbari_rtabmap_msgs::msg::Info::ConstSharedPtr infoMsg,
+		const mbari_rtabmap_msgs::msg::MapData::ConstSharedPtr mapMsg)
 {
 	//RCLCPP_INFO(this->get_logger(), "rtabmapviz: RTAB-Map info ex received!");
 
@@ -201,7 +201,7 @@ void GuiWrapper::infoMapCallback(
 }
 
 void GuiWrapper::goalPathCallback(
-		const rtabmap_ros::msg::Goal::ConstSharedPtr goalMsg,
+		const mbari_rtabmap_msgs::msg::Goal::ConstSharedPtr goalMsg,
 		const nav_msgs::msg::Path::ConstSharedPtr pathMsg)
 {
 	// we don't have the node ids, just generate fake ones.
@@ -220,7 +220,7 @@ void GuiWrapper::goalReachedCallback(
 	this->post(new RtabmapGoalStatusEvent(value->data?1:-1));
 }
 
-void GuiWrapper::processRequestedMap(const rtabmap_ros::msg::MapData & map)
+void GuiWrapper::processRequestedMap(const mbari_rtabmap_msgs::msg::MapData & map)
 {
 	// Make sure parameters are loaded
 	if(((PreferencesDialogROS*)prefDialog_)->hasAllParameters())
@@ -260,16 +260,16 @@ bool GuiWrapper::callEmptyService(const std::string & name)
 
 bool GuiWrapper::callMapDataService(const std::string & name, bool global, bool optimized, bool graphOnly)
 {
-	auto client = this->create_client<rtabmap_ros::srv::GetMap>(name);
+	auto client = this->create_client<mbari_rtabmap_msgs::srv::GetMap>(name);
 	if(client->wait_for_service(std::chrono::seconds(2)))
 	{
-		auto request = std::make_shared<rtabmap_ros::srv::GetMap::Request>();
+		auto request = std::make_shared<mbari_rtabmap_msgs::srv::GetMap::Request>();
 		request->global_map = global;
 		request->optimized = optimized;
 		request->graph_only = graphOnly;
 
 		using ServiceResponseFuture =
-		  rclcpp::Client<rtabmap_ros::srv::GetMap>::SharedFuture;
+		  rclcpp::Client<mbari_rtabmap_msgs::srv::GetMap>::SharedFuture;
 		auto response_received_callback = [this](ServiceResponseFuture future) {
 			auto result = future.get();
 			processRequestedMap(result->data);
@@ -395,15 +395,15 @@ bool GuiWrapper::handleEvent(UEvent * anEvent)
 		{
 			UASSERT(cmdEvent->value1().isStr() || cmdEvent->value1().isInt() || cmdEvent->value1().isUInt());
 
-			auto client = this->create_client<rtabmap_ros::srv::SetGoal>("set_goal");
+			auto client = this->create_client<mbari_rtabmap_msgs::srv::SetGoal>("set_goal");
 			if(client->wait_for_service(std::chrono::seconds(1)))
 			{
-				auto request = std::make_shared<rtabmap_ros::srv::SetGoal::Request>();
+				auto request = std::make_shared<mbari_rtabmap_msgs::srv::SetGoal::Request>();
 				request->node_id = !cmdEvent->value1().isStr()?cmdEvent->value1().toInt():0;
 				request->node_label = cmdEvent->value1().isStr()?cmdEvent->value1().toStr():"";
 
 				using ServiceResponseFuture =
-				  rclcpp::Client<rtabmap_ros::srv::SetGoal>::SharedFuture;
+				  rclcpp::Client<mbari_rtabmap_msgs::srv::SetGoal>::SharedFuture;
 				auto response_received_callback = [this, &request](ServiceResponseFuture future) {
 					auto result = future.get();
 					UASSERT(result->path_ids.size() == result->path_poses.size());
@@ -435,10 +435,10 @@ bool GuiWrapper::handleEvent(UEvent * anEvent)
 			UASSERT(cmdEvent->value1().isStr());
 			UASSERT(cmdEvent->value2().isUndef() || cmdEvent->value2().isInt() || cmdEvent->value2().isUInt());
 
-			auto client = this->create_client<rtabmap_ros::srv::SetLabel>("set_label");
+			auto client = this->create_client<mbari_rtabmap_msgs::srv::SetLabel>("set_label");
 			if(client->wait_for_service(std::chrono::seconds(1)))
 			{
-				auto request = std::make_shared<rtabmap_ros::srv::SetLabel::Request>();
+				auto request = std::make_shared<mbari_rtabmap_msgs::srv::SetLabel::Request>();
 				request->node_id = cmdEvent->value2().isUndef()?0:cmdEvent->value2().toInt();
 				request->node_label = cmdEvent->value1().toStr();
 				auto result_future = client->async_send_request(request);
@@ -452,10 +452,10 @@ bool GuiWrapper::handleEvent(UEvent * anEvent)
 		else if(cmd == rtabmap::RtabmapEventCmd::kCmdRemoveLabel)
 		{
 			UASSERT(cmdEvent->value1().isStr());
-			auto client = this->create_client<rtabmap_ros::srv::RemoveLabel>("remove_label");
+			auto client = this->create_client<mbari_rtabmap_msgs::srv::RemoveLabel>("remove_label");
 			if(client->wait_for_service(std::chrono::seconds(1)))
 			{
-				auto request = std::make_shared<rtabmap_ros::srv::RemoveLabel::Request>();
+				auto request = std::make_shared<mbari_rtabmap_msgs::srv::RemoveLabel::Request>();
 				request->label = cmdEvent->value1().toStr();
 				auto result_future = client->async_send_request(request);
 				result_future.wait();
@@ -482,17 +482,17 @@ bool GuiWrapper::handleEvent(UEvent * anEvent)
 
 void GuiWrapper::commonMultiCameraCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr &,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr &,
 		const std::vector<cv_bridge::CvImageConstPtr> & imageMsgs,
 		const std::vector<cv_bridge::CvImageConstPtr> & depthMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & cameraInfoMsgs,
 		const std::vector<sensor_msgs::msg::CameraInfo> & depthCameraInfoMsgs,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const std::vector<rtabmap_ros::msg::GlobalDescriptor> &,
-		const std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > &,
-		const std::vector<std::vector<rtabmap_ros::msg::Point3f> > &,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> &,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> > &,
+		const std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> > &,
 		const std::vector<cv::Mat> &)
 {
 	UASSERT(imageMsgs.size() == 0 || (imageMsgs.size() == cameraInfoMsgs.size()));
@@ -685,17 +685,17 @@ void GuiWrapper::commonMultiCameraCallback(
 
 void GuiWrapper::commonStereoCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr &,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr &,
 		const cv_bridge::CvImageConstPtr& leftImageMsg,
 		const cv_bridge::CvImageConstPtr& rightImageMsg,
 		const sensor_msgs::msg::CameraInfo& leftCamInfoMsg,
 		const sensor_msgs::msg::CameraInfo& rightCamInfoMsg,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const std::vector<rtabmap_ros::msg::GlobalDescriptor> &,
-		const std::vector<rtabmap_ros::msg::KeyPoint> &,
-		const std::vector<rtabmap_ros::msg::Point3f> &,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> &,
+		const std::vector<mbari_rtabmap_msgs::msg::KeyPoint> &,
+		const std::vector<mbari_rtabmap_msgs::msg::Point3f> &,
 		const cv::Mat &)
 {
 	std_msgs::msg::Header odomHeader;
@@ -865,11 +865,11 @@ void GuiWrapper::commonStereoCallback(
 
 void GuiWrapper::commonLaserScanCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr &,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr &,
 		const sensor_msgs::msg::LaserScan & scan2dMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const rtabmap_ros::msg::GlobalDescriptor &)
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const mbari_rtabmap_msgs::msg::GlobalDescriptor &)
 {
 	std_msgs::msg::Header odomHeader;
 	std::string frameId = frameId_;
@@ -1012,8 +1012,8 @@ void GuiWrapper::commonLaserScanCallback(
 
 void GuiWrapper::commonOdomCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr &,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg)
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr &,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg)
 {
 	UASSERT(odomMsg.get());
 

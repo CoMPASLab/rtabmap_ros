@@ -993,24 +993,24 @@ CommonDataSubscriber::~CommonDataSubscriber()
 
 void CommonDataSubscriber::commonSingleCameraCallback(
 		const nav_msgs::msg::Odometry::ConstSharedPtr & odomMsg,
-		const rtabmap_ros::msg::UserData::ConstSharedPtr & userDataMsg,
+		const mbari_rtabmap_msgs::msg::UserData::ConstSharedPtr & userDataMsg,
 		const cv_bridge::CvImageConstPtr & imageMsg,
 		const cv_bridge::CvImageConstPtr & depthMsg,
 		const sensor_msgs::msg::CameraInfo & rgbCameraInfoMsg,
 		const sensor_msgs::msg::CameraInfo & depthCameraInfoMsg,
 		const sensor_msgs::msg::LaserScan & scanMsg,
 		const sensor_msgs::msg::PointCloud2 & scan3dMsg,
-		const rtabmap_ros::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
-		const std::vector<rtabmap_ros::msg::GlobalDescriptor> & globalDescriptorMsgs,
-		const std::vector<rtabmap_ros::msg::KeyPoint> & localKeyPoints,
-		const std::vector<rtabmap_ros::msg::Point3f> & localPoints3d,
+		const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr& odomInfoMsg,
+		const std::vector<mbari_rtabmap_msgs::msg::GlobalDescriptor> & globalDescriptorMsgs,
+		const std::vector<mbari_rtabmap_msgs::msg::KeyPoint> & localKeyPoints,
+		const std::vector<mbari_rtabmap_msgs::msg::Point3f> & localPoints3d,
 		const cv::Mat & localDescriptors)
 {
 	callbackCalled();
 
-	std::vector<std::vector<rtabmap_ros::msg::KeyPoint> > localKeyPointsMsgs;
+	std::vector<std::vector<mbari_rtabmap_msgs::msg::KeyPoint> > localKeyPointsMsgs;
 	localKeyPointsMsgs.push_back(localKeyPoints);
-	std::vector<std::vector<rtabmap_ros::msg::Point3f> > localPoints3dMsgs;
+	std::vector<std::vector<mbari_rtabmap_msgs::msg::Point3f> > localPoints3dMsgs;
 	localPoints3dMsgs.push_back(localPoints3d);
 	std::vector<cv::Mat> localDescriptorsMsgs;
 	localDescriptorsMsgs.push_back(localDescriptors);

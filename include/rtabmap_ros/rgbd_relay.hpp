@@ -28,7 +28,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap_ros/visibility.h>
 #include "rclcpp/rclcpp.hpp"
 
-#include "rtabmap_ros/msg/rgbd_image.hpp"
+#include "mbari_rtabmap_msgs/msg/rgbd_image.hpp"
 
 namespace rtabmap_ros
 {
@@ -40,13 +40,13 @@ public:
 	explicit RGBDRelay(const rclcpp::NodeOptions & options);
 	virtual ~RGBDRelay() {}
 private:
-	void callback(const rtabmap_ros::msg::RGBDImage::SharedPtr input) const;
+	void callback(const mbari_rtabmap_msgs::msg::RGBDImage::SharedPtr input) const;
 
 private:
 	bool compress_;
 	bool uncompress_;
-	rclcpp::Subscription<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdImageSub_;
-	rclcpp::Publisher<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdImagePub_;
+	rclcpp::Subscription<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdImageSub_;
+	rclcpp::Publisher<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdImagePub_;
 };
 
 }

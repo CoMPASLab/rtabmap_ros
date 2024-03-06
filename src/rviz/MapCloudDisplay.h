@@ -37,7 +37,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <utility>
 
 #include <rtabmap_ros/visibility.h>
-#include <rtabmap_ros/msg/map_data.hpp>
+#include <mbari_rtabmap_msgs/msg/map_data.hpp>
 #include <rtabmap/core/Transform.h>
 
 #include <sensor_msgs/msg/point_cloud2.hpp>
@@ -100,7 +100,7 @@ typedef std::shared_ptr<CloudInfo> CloudInfoPtr;
  * If you set the channel's name to "rgb", it will interpret the channel as an integer rgb value, with r, g and b
  * all being 8 bits.
  */
-class RTABMAP_ROS_PUBLIC MapCloudDisplay: public rviz_common::MessageFilterDisplay<rtabmap_ros::msg::MapData>
+class RTABMAP_ROS_PUBLIC MapCloudDisplay: public rviz_common::MessageFilterDisplay<mbari_rtabmap_msgs::msg::MapData>
 {
 Q_OBJECT
 public:
@@ -149,11 +149,11 @@ private Q_SLOTS:
 
 protected:
 	/** @brief Process a single message.  Overridden from MessageFilterDisplay. */
-	virtual void processMessage( const rtabmap_ros::msg::MapData::ConstSharedPtr cloud );
+	virtual void processMessage( const mbari_rtabmap_msgs::msg::MapData::ConstSharedPtr cloud );
 	void onInitialize();
 private:
 	void downloadMap(bool graphOnly);
-	void processMapData(const rtabmap_ros::msg::MapData& map);
+	void processMapData(const mbari_rtabmap_msgs::msg::MapData& map);
 
 	/**
 	* \brief Transforms the cloud into the correct frame, and sets up our renderable cloud

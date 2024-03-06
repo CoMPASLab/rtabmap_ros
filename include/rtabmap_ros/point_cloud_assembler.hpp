@@ -64,7 +64,7 @@ private:
 	void callbackCloudOdomInfo(
 				const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloudMsg,
 				const nav_msgs::msg::Odometry::ConstSharedPtr odomMsg,
-				const rtabmap_ros::msg::OdomInfo::ConstSharedPtr odomInfoMsg);
+				const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr odomInfoMsg);
 
 	void callbackCloudOdom(
 			const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloudMsg,
@@ -80,12 +80,12 @@ private:
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloudPub_;
 
 	typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry> syncPolicy;
-	typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry, rtabmap_ros::msg::OdomInfo> syncInfoPolicy;
+	typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::PointCloud2, nav_msgs::msg::Odometry, mbari_rtabmap_msgs::msg::OdomInfo> syncInfoPolicy;
 	message_filters::Synchronizer<syncPolicy>* exactSync_;
 	message_filters::Synchronizer<syncInfoPolicy>* exactInfoSync_;
 	message_filters::Subscriber<sensor_msgs::msg::PointCloud2> syncCloudSub_;
 	message_filters::Subscriber<nav_msgs::msg::Odometry> syncOdomSub_;
-	message_filters::Subscriber<rtabmap_ros::msg::OdomInfo> syncOdomInfoSub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::OdomInfo> syncOdomInfoSub_;
 
 	int maxClouds_;
 	int skipClouds_;

@@ -33,7 +33,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <stereo_msgs/msg/disparity_image.hpp>
 
-#include <rtabmap_ros/msg/rgbd_image.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_image.hpp>
 
 #include <image_transport/image_transport.hpp>
 #include <image_transport/subscriber_filter.hpp>
@@ -74,7 +74,7 @@ private:
 			const sensor_msgs::msg::CameraInfo::ConstSharedPtr camInfoLeft,
 			const sensor_msgs::msg::CameraInfo::ConstSharedPtr camInfoRight);
 
-	void rgbdImageCallback(const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image);
+	void rgbdImageCallback(const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image);
 
 	void processAndPublish(pcl::PointCloud<pcl::PointXYZRGB>::Ptr & pclCloud, pcl::IndicesPtr & indices, const std_msgs::msg::Header & header);
 
@@ -94,7 +94,7 @@ private:
 
 	rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr cloudPub_;
 
-	rclcpp::Subscription<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdImageSub_;
+	rclcpp::Subscription<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdImageSub_;
 
 	image_transport::SubscriberFilter imageSub_;
 	image_transport::SubscriberFilter imageDepthSub_;

@@ -55,7 +55,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/Compression.h>
 #include <rtabmap/core/Graph.h>
 #include <rtabmap_ros/MsgConversion.h>
-#include <rtabmap_ros/srv/get_map.hpp>
+#include <mbari_rtabmap_msgs/srv/get_map.hpp>
 
 
 namespace rtabmap_ros
@@ -253,14 +253,14 @@ void MapCloudDisplay::loadTransformer(
   transformers_[name] = info;
 }
 
-void MapCloudDisplay::processMessage( const rtabmap_ros::msg::MapData::ConstSharedPtr msg )
+void MapCloudDisplay::processMessage( const mbari_rtabmap_msgs::msg::MapData::ConstSharedPtr msg )
 {
 	processMapData(*msg);
 
 	this->emitTimeSignal(msg->header.stamp);
 }
 
-void MapCloudDisplay::processMapData(const rtabmap_ros::msg::MapData& map)
+void MapCloudDisplay::processMapData(const mbari_rtabmap_msgs::msg::MapData& map)
 {
 	std::map<int, rtabmap::Transform> poses;
 	for(unsigned int i=0; i<map.graph.poses_id.size() && i<map.graph.poses.size(); ++i)
@@ -506,7 +506,7 @@ void MapCloudDisplay::downloadMap(bool /*graphOnly*/)
 	return;
 	// FIXME: ros2: can connect to client, rtabmap returns data but the callback here is never called?!
 	/*
-	auto request = std::make_shared<rtabmap_ros::srv::GetMap::Request>();
+	auto request = std::make_shared<mbari_rtabmap_msgs::srv::GetMap::Request>();
 	request->global_map = false;
 	request->optimized = true;
 	request->graph_only = graphOnly;
@@ -524,10 +524,10 @@ void MapCloudDisplay::downloadMap(bool /*graphOnly*/)
 //	QApplication::processEvents();
 	
 	RVIZ_COMMON_LOG_WARNING(uFormat("Wait for service %s", srvName.c_str()));
-	auto client = rviz_ros_node_.lock()->get_raw_node()->create_client<rtabmap_ros::srv::GetMap>(srvName);
+	auto client = rviz_ros_node_.lock()->get_raw_node()->create_client<mbari_rtabmap_msgs::srv::GetMap>(srvName);
 	if(client->wait_for_service(std::chrono::seconds(1)))
 	{
-		using ServiceResponseFuture = rclcpp::Client<rtabmap_ros::srv::GetMap>::SharedFuture;
+		using ServiceResponseFuture = rclcpp::Client<mbari_rtabmap_msgs::srv::GetMap>::SharedFuture;
 		auto response_received_callback = [this, &graphOnly](ServiceResponseFuture future) {
 			auto result = future.get();
 			RVIZ_COMMON_LOG_WARNING(uFormat("Process data"));

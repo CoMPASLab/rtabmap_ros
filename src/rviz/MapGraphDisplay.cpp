@@ -87,7 +87,7 @@ void MapGraphDisplay::destroyObjects()
 	manual_objects_.clear();
 }
 
-void MapGraphDisplay::processMessage( const rtabmap_ros::msg::MapGraph::ConstSharedPtr msg )
+void MapGraphDisplay::processMessage( const mbari_rtabmap_msgs::msg::MapGraph::ConstSharedPtr msg )
 {
 	if(!(msg->poses.size() == msg->poses_id.size()))
 	{

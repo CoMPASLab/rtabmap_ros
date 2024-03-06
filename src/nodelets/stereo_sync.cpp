@@ -66,8 +66,8 @@ StereoSync::StereoSync(const rclcpp::NodeOptions & options) :
 	RCLCPP_INFO(this->get_logger(), "%s: qos_camera_info = %d", get_name(), qosCamInfo);
 	RCLCPP_INFO(this->get_logger(), "%s: compressed_rate = %f", get_name(), compressedRate_);
 
-	rgbdImagePub_ = create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
-	rgbdImageCompressedPub_ = create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImagePub_ = create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImageCompressedPub_ = create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 
 	if(approxSync)
 	{
@@ -153,7 +153,7 @@ void StereoSync::callback(
 					rightStamp);
 		}
 
-		rtabmap_ros::msg::RGBDImage::UniquePtr msg(new rtabmap_ros::msg::RGBDImage);
+		mbari_rtabmap_msgs::msg::RGBDImage::UniquePtr msg(new mbari_rtabmap_msgs::msg::RGBDImage);
 		msg->header.frame_id = cameraInfoLeft->header.frame_id;
 		msg->header.stamp = leftStamp>rightStamp?imageLeft->header.stamp:imageRight->header.stamp;
 		msg->rgb_camera_info = *cameraInfoLeft;
@@ -175,7 +175,7 @@ void StereoSync::callback(
 			{
 				lastCompressedPublished_ = now();
 
-				rtabmap_ros::msg::RGBDImage::UniquePtr msgCompressed(new rtabmap_ros::msg::RGBDImage);
+				mbari_rtabmap_msgs::msg::RGBDImage::UniquePtr msgCompressed(new mbari_rtabmap_msgs::msg::RGBDImage);
 				*msgCompressed = *msg;
 
 				cv_bridge::CvImageConstPtr imagePtr = cv_bridge::toCvShare(imageLeft);

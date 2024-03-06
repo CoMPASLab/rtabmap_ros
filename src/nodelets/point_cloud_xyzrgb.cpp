@@ -135,7 +135,7 @@ PointCloudXYZRGB::PointCloudXYZRGB(const rclcpp::NodeOptions & options) :
 
 	cloudPub_ = create_publisher<sensor_msgs::msg::PointCloud2>("cloud", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 
-	rgbdImageSub_ = create_subscription<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos), std::bind(&PointCloudXYZRGB::rgbdImageCallback, this, std::placeholders::_1));
+	rgbdImageSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos), std::bind(&PointCloudXYZRGB::rgbdImageCallback, this, std::placeholders::_1));
 
 	if(approxSync)
 	{
@@ -415,7 +415,7 @@ void PointCloudXYZRGB::stereoCallback(
 }
 
 void PointCloudXYZRGB::rgbdImageCallback(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image)
 {
 	if(cloudPub_->get_subscription_count())
 	{

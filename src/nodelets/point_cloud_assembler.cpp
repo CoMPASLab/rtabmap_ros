@@ -35,7 +35,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <pcl/filters/radius_outlier_removal.h>
 
 #include <rtabmap_ros/MsgConversion.h>
-#include <rtabmap_ros/msg/odom_info.hpp>
+#include <mbari_rtabmap_msgs/msg/odom_info.hpp>
 #include <rtabmap/core/util3d.h>
 #include <rtabmap/core/util3d_filtering.h>
 #include <rtabmap/core/Version.h>
@@ -256,7 +256,7 @@ sensor_msgs::msg::PointCloud2 removeField(const sensor_msgs::msg::PointCloud2 & 
 void PointCloudAssembler::callbackCloudOdomInfo(
 			const sensor_msgs::msg::PointCloud2::ConstSharedPtr cloudMsg,
 			const nav_msgs::msg::Odometry::ConstSharedPtr odomMsg,
-			const rtabmap_ros::msg::OdomInfo::ConstSharedPtr odomInfoMsg)
+			const mbari_rtabmap_msgs::msg::OdomInfo::ConstSharedPtr odomInfoMsg)
 {
 	callbackCalled_ = true;
 	rtabmap::Transform odom = rtabmap_ros::transformFromPoseMsg(odomMsg->pose.pose);

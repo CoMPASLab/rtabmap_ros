@@ -38,8 +38,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <image_transport/subscriber_filter.hpp>
 
 #include <sensor_msgs/msg/image.hpp>
-#include <rtabmap_ros/msg/rgbd_image.hpp>
-#include <rtabmap_ros/msg/rgbd_images.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_image.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_images.hpp>
 
 #include <cv_bridge/cv_bridge.h>
 
@@ -68,32 +68,32 @@ private:
 			const sensor_msgs::msg::CameraInfo::ConstSharedPtr cameraInfo);
 
 	void callbackRGBDX(
-			const rtabmap_ros::msg::RGBDImages::ConstSharedPtr images);
+			const mbari_rtabmap_msgs::msg::RGBDImages::ConstSharedPtr images);
 
 	void callbackRGBD(
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image);
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image);
 
 	void callbackRGBD2(
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2);
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2);
 
 	void callbackRGBD3(
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3);
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3);
 
 	void callbackRGBD4(
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4);
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4);
 
 	void callbackRGBD5(
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4,
-			const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image5);
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4,
+			const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image5);
 
 protected:
 	virtual void flushCallbacks();
@@ -103,33 +103,33 @@ private:
 	image_transport::SubscriberFilter image_depth_sub_;
 	message_filters::Subscriber<sensor_msgs::msg::CameraInfo> info_sub_;
 
-	rclcpp::Subscription<rtabmap_ros::msg::RGBDImage>::SharedPtr rgbdSub_;
-	rclcpp::Subscription<rtabmap_ros::msg::RGBDImages>::SharedPtr rgbdxSub_;
-	message_filters::Subscriber<rtabmap_ros::msg::RGBDImage> rgbd_image1_sub_;
-	message_filters::Subscriber<rtabmap_ros::msg::RGBDImage> rgbd_image2_sub_;
-	message_filters::Subscriber<rtabmap_ros::msg::RGBDImage> rgbd_image3_sub_;
-	message_filters::Subscriber<rtabmap_ros::msg::RGBDImage> rgbd_image4_sub_;
-	message_filters::Subscriber<rtabmap_ros::msg::RGBDImage> rgbd_image5_sub_;
+	rclcpp::Subscription<mbari_rtabmap_msgs::msg::RGBDImage>::SharedPtr rgbdSub_;
+	rclcpp::Subscription<mbari_rtabmap_msgs::msg::RGBDImages>::SharedPtr rgbdxSub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage> rgbd_image1_sub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage> rgbd_image2_sub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage> rgbd_image3_sub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage> rgbd_image4_sub_;
+	message_filters::Subscriber<mbari_rtabmap_msgs::msg::RGBDImage> rgbd_image5_sub_;
 
 	typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo> MyApproxSyncPolicy;
 	message_filters::Synchronizer<MyApproxSyncPolicy> * approxSync_;
 	typedef message_filters::sync_policies::ExactTime<sensor_msgs::msg::Image, sensor_msgs::msg::Image, sensor_msgs::msg::CameraInfo> MyExactSyncPolicy;
 	message_filters::Synchronizer<MyExactSyncPolicy> * exactSync_;
-	typedef message_filters::sync_policies::ApproximateTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyApproxSync2Policy;
+	typedef message_filters::sync_policies::ApproximateTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyApproxSync2Policy;
 	message_filters::Synchronizer<MyApproxSync2Policy> * approxSync2_;
-	typedef message_filters::sync_policies::ExactTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyExactSync2Policy;
+	typedef message_filters::sync_policies::ExactTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyExactSync2Policy;
 	message_filters::Synchronizer<MyExactSync2Policy> * exactSync2_;
-	typedef message_filters::sync_policies::ApproximateTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyApproxSync3Policy;
+	typedef message_filters::sync_policies::ApproximateTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyApproxSync3Policy;
 	message_filters::Synchronizer<MyApproxSync3Policy> * approxSync3_;
-	typedef message_filters::sync_policies::ExactTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyExactSync3Policy;
+	typedef message_filters::sync_policies::ExactTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyExactSync3Policy;
 	message_filters::Synchronizer<MyExactSync3Policy> * exactSync3_;
-	typedef message_filters::sync_policies::ApproximateTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyApproxSync4Policy;
+	typedef message_filters::sync_policies::ApproximateTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyApproxSync4Policy;
 	message_filters::Synchronizer<MyApproxSync4Policy> * approxSync4_;
-	typedef message_filters::sync_policies::ExactTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyExactSync4Policy;
+	typedef message_filters::sync_policies::ExactTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyExactSync4Policy;
 	message_filters::Synchronizer<MyExactSync4Policy> * exactSync4_;
-	typedef message_filters::sync_policies::ApproximateTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyApproxSync5Policy;
+	typedef message_filters::sync_policies::ApproximateTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyApproxSync5Policy;
 	message_filters::Synchronizer<MyApproxSync5Policy> * approxSync5_;
-	typedef message_filters::sync_policies::ExactTime<rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage, rtabmap_ros::msg::RGBDImage> MyExactSync5Policy;
+	typedef message_filters::sync_policies::ExactTime<mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage, mbari_rtabmap_msgs::msg::RGBDImage> MyExactSync5Policy;
 	message_filters::Synchronizer<MyExactSync5Policy> * exactSync5_;
 	int queueSize_;
 	bool keepColor_;

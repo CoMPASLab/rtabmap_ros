@@ -53,11 +53,11 @@ RGBDRelay::RGBDRelay(const rclcpp::NodeOptions & options) :
 	compress_ = this->declare_parameter("compress", compress_);
 	uncompress_ = this->declare_parameter("uncompress", uncompress_);
 
-	rgbdImageSub_ = create_subscription<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qos), std::bind(&RGBDRelay::callback, this, std::placeholders::_1));
-	rgbdImagePub_ = create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image_relay", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImageSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(5).reliability((rmw_qos_reliability_policy_t)qos), std::bind(&RGBDRelay::callback, this, std::placeholders::_1));
+	rgbdImagePub_ = create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image_relay", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 }
 
-void RGBDRelay::callback(const rtabmap_ros::msg::RGBDImage::SharedPtr input) const
+void RGBDRelay::callback(const mbari_rtabmap_msgs::msg::RGBDImage::SharedPtr input) const
 {
 	if(rgbdImagePub_->get_subscription_count())
 	{
@@ -68,7 +68,7 @@ void RGBDRelay::callback(const rtabmap_ros::msg::RGBDImage::SharedPtr input) con
 			return;
 		}
 
-		auto output = std::make_unique<rtabmap_ros::msg::RGBDImage>();
+		auto output = std::make_unique<mbari_rtabmap_msgs::msg::RGBDImage>();
 		output->header = input->header;
 		output->rgb_camera_info = input->rgb_camera_info;
 		output->depth_camera_info = input->depth_camera_info;

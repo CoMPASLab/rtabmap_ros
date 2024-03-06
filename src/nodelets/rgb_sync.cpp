@@ -68,8 +68,8 @@ RGBSync::RGBSync(const rclcpp::NodeOptions & options) :
 	RCLCPP_INFO(this->get_logger(), "%s: qos_camera_info = %d", get_name(), qosCaminfo);
 	RCLCPP_INFO(this->get_logger(), "%s: compressed_rate = %f", get_name(), compressedRate_);
 
-	rgbdImagePub_ = this->create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
-	rgbdImageCompressedPub_ = this->create_publisher<rtabmap_ros::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImagePub_ = this->create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
+	rgbdImageCompressedPub_ = this->create_publisher<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image/compressed", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos));
 
 	if(approxSync)
 	{
@@ -142,7 +142,7 @@ void RGBSync::callback(
 	{
 		double stamp = timestampFromROS(image->header.stamp);
 
-		rtabmap_ros::msg::RGBDImage msg;
+		mbari_rtabmap_msgs::msg::RGBDImage msg;
 		msg.header.frame_id = cameraInfo->header.frame_id;
 		msg.header.stamp = image->header.stamp;
 		msg.rgb_camera_info = *cameraInfo;
@@ -163,7 +163,7 @@ void RGBSync::callback(
 			{
 				lastCompressedPublished_ = now();
 
-				rtabmap_ros::msg::RGBDImage msgCompressed = msg;
+				mbari_rtabmap_msgs::msg::RGBDImage msgCompressed = msg;
 
 				cv_bridge::CvImageConstPtr imagePtr = cv_bridge::toCvShare(image);
 				imagePtr->toCompressedImageMsg(msgCompressed.rgb_compressed, cv_bridge::JPG);

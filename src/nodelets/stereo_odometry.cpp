@@ -32,7 +32,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <image_geometry/stereo_camera_model.h>
 
 #include "rtabmap_ros/MsgConversion.h"
-#include <rtabmap_ros/msg/rgbd_images.hpp>
+#include <mbari_rtabmap_msgs/msg/rgbd_images.hpp>
 
 #include <rtabmap/utilite/ULogger.h>
 #include <rtabmap/utilite/UTimer.h>
@@ -204,7 +204,7 @@ void StereoOdometry::onOdomInit()
 		}
 		else if(rgbdCameras == 0)
 		{
-			rgbdxSub_ = create_subscription<rtabmap_ros::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&StereoOdometry::callbackRGBDX, this, std::placeholders::_1));
+			rgbdxSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImages>("rgbd_images", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&StereoOdometry::callbackRGBDX, this, std::placeholders::_1));
 
 			subscribedTopicsMsg =
 					uFormat("\n%s subscribed to:\n   %s",
@@ -213,7 +213,7 @@ void StereoOdometry::onOdomInit()
 		}
 		else
 		{
-			rgbdSub_ = create_subscription<rtabmap_ros::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&StereoOdometry::callbackRGBD, this, std::placeholders::_1));
+			rgbdSub_ = create_subscription<mbari_rtabmap_msgs::msg::RGBDImage>("rgbd_image", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qos()), std::bind(&StereoOdometry::callbackRGBD, this, std::placeholders::_1));
 
 			subscribedTopicsMsg =
 					uFormat("\n%s subscribed to:\n   %s",
@@ -544,7 +544,7 @@ void StereoOdometry::callback(
 }
 
 void StereoOdometry::callbackRGBD(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -562,7 +562,7 @@ void StereoOdometry::callbackRGBD(
 }
 
 void StereoOdometry::callbackRGBDX(
-		const rtabmap_ros::msg::RGBDImages::ConstSharedPtr images)
+		const mbari_rtabmap_msgs::msg::RGBDImages::ConstSharedPtr images)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -588,8 +588,8 @@ void StereoOdometry::callbackRGBDX(
 }
 
 void StereoOdometry::callbackRGBD2(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -610,9 +610,9 @@ void StereoOdometry::callbackRGBD2(
 }
 
 void StereoOdometry::callbackRGBD3(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3)
 {
 	callbackCalled();
 	if(!this->isPaused())
@@ -636,10 +636,10 @@ void StereoOdometry::callbackRGBD3(
 }
 
 void StereoOdometry::callbackRGBD4(
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image2,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image3,
-		const rtabmap_ros::msg::RGBDImage::ConstSharedPtr image4)
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image2,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image3,
+		const mbari_rtabmap_msgs::msg::RGBDImage::ConstSharedPtr image4)
 {
 	callbackCalled();
 	if(!this->isPaused())
