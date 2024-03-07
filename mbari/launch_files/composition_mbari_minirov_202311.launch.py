@@ -63,6 +63,7 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
         DeclareLaunchArgument('left_image_topic',        default_value=[LaunchConfiguration('stereo_namespace'), '/left/image_rect_color'], description='Input topic for either stereo sync or Rtabmap directly'),
         DeclareLaunchArgument('right_image_topic',       default_value=[LaunchConfiguration('stereo_namespace'), '/right/image_rect'], description='Use grayscale image for efficiency'),
+        DeclareLaunchArgument('depth_image_topic',       default_value=[LaunchConfiguration('stereo_namespace'), '/depth_image'], description=''),
         DeclareLaunchArgument('left_camera_info_topic',  default_value=[LaunchConfiguration('stereo_namespace'), '/left/camera_info'], description=''),
         DeclareLaunchArgument('right_camera_info_topic', default_value=[LaunchConfiguration('stereo_namespace'), '/right/camera_info'], description=''),
 
@@ -213,7 +214,7 @@ def launch_setup(context, *args, **kwargs):
             namespace=LaunchConfiguration('namespace'),
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic')),
-                ("right/image_rect", LaunchConfiguration('right_image_topic')),
+                ("right/image_rect", LaunchConfiguration('depth_image_topic')),
                 ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                 ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
             ]
