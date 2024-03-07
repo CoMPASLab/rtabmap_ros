@@ -69,7 +69,20 @@ def generate_launch_description():
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
-                )
+                ),
+                ComposableNode(
+                    package='stereo_image_proc',
+                    plugin='stereo_image_proc::DisparityNode',
+                    name='disparity_node',
+                    namespace='stereo_camera/',
+                    remappings=[
+                        ('left/image_rect', 'left/image_rect_color')
+                    ],
+                    parameters=[{
+                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
+                    }]
+                ),
             ],
         ),
         ComposableNodeContainer(
@@ -102,7 +115,20 @@ def generate_launch_description():
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
-                )
+                ),
+                ComposableNode(
+                    package='stereo_image_proc',
+                    plugin='stereo_image_proc::DisparityNode',
+                    name='disparity_node',
+                    namespace='stereo_camera/',
+                    remappings=[
+                        ('left/image_rect', 'left/image_rect_color')
+                    ],
+                    parameters=[{
+                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
+                    }]
+                ),
             ],
             output='screen'
         ),
