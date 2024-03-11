@@ -8,15 +8,22 @@ from launch.conditions import IfCondition, UnlessCondition
 def generate_launch_description():
     return LaunchDescription([
         DeclareLaunchArgument(
-            name='approximate_sync', default_value='False',
+            name='approximate_sync', default_value='false',
             description='Whether to use approximate synchronization of topics. Set to true if '
                         'the left and right cameras do not produce exactly synced timestamps.'
         ),
         DeclareLaunchArgument(
-            name='use_system_default_qos', default_value='False',
+            name='use_system_default_qos', default_value='false',
             description='Use the RMW QoS settings for the image and camera info subscriptions.'
         ),
-        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='True', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
+        DeclareLaunchArgument(
+            name='use_sim_time', default_value='true',
+            description='Whether to use simulated clock'
+        ),
+        DeclareLaunchArgument(
+            name='use_memory_sharing_with_rtabmap', default_value='false',
+            description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'
+        ),
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
             target_container='mbari_rtabmap_container',
@@ -83,6 +90,12 @@ def generate_launch_description():
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 ),
+                ComposableNode(
+                    package='mbari_image_proc',
+                    plugin='mbari_image_proc::DisparityToDepth',
+                    name='disparity_to_depth_node',
+                    parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                ),
             ],
         ),
         ComposableNodeContainer(
@@ -128,6 +141,12 @@ def generate_launch_description():
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
+                ),
+                ComposableNode(
+                    package='mbari_image_proc',
+                    plugin='mbari_image_proc::DisparityToDepth',
+                    name='disparity_to_depth_node',
+                    parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
                 ),
             ],
             output='screen'
