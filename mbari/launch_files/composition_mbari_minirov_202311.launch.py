@@ -235,6 +235,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
         DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
         DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
+        DeclareLaunchArgument('rtabmapviz',     default_value='false',  description='Launch RTAB-Map UI (optional).'),
 
         DeclareLaunchArgument('frame_to_convert_to_from_base_link_frd',     default_value='base_link', description=''),
 
