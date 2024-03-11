@@ -248,7 +248,7 @@ def generate_launch_description():
         DeclareLaunchArgument('input_rgbd_converted_from_stereo', default_value='true', description='Whether to convert stereo images to RGBD format before sending them to Rtabmap core'),
 
         # Parameter for toggling composition
-        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
+        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='false', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
 
         OpaqueFunction(function=launch_setup),
     ])
