@@ -250,5 +250,7 @@ def generate_launch_description():
         # Parameter for toggling composition
         DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='false', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
 
+        DeclareLaunchArgument('use_system_default_qos', default_value='true', description='Use the RMW QoS settings for the image and camera info subscriptions.'),
+
         OpaqueFunction(function=launch_setup),
     ])

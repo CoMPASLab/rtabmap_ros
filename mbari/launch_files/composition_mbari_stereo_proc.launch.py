@@ -13,7 +13,7 @@ def generate_launch_description():
                         'the left and right cameras do not produce exactly synced timestamps.'
         ),
         DeclareLaunchArgument(
-            name='use_system_default_qos', default_value='false',
+            name='use_system_default_qos', default_value='true',
             description='Use the RMW QoS settings for the image and camera info subscriptions.'
         ),
         DeclareLaunchArgument(
