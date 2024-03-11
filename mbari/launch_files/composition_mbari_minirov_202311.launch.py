@@ -220,7 +220,6 @@ def launch_setup(context, *args, **kwargs):
             ]
         ),
 
-
         # RTAB-Map pose reset service
         Node(
             package='rtabmap_ros', executable='reset_odometry', name='reset_odometry',
