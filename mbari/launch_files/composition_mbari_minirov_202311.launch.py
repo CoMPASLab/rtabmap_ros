@@ -16,10 +16,12 @@ def launch_setup(context, *args, **kwargs):
 
     use_memory_sharing = IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context)
     use_rgbd_sync = IfCondition(context.perform_substitution(LaunchConfiguration('input_rgbd_converted_from_stereo')))._predicate_func(context)
-
     visual_only = IfCondition(context.perform_substitution(LaunchConfiguration('visual_odometry_only')))._predicate_func(context)
 
     params_folder = 'MINIROV_2023_11_VISUAL_ONLY' if visual_only else 'MINIROV_2023_11'
+
+    rtabmap_launch_file = '/launch/composition_mbari_rtabmap_ros.launch.py'
+    image_proc_launch_file = '/launch/composition_mbari_stereo_proc_with_disparity.launch.py' if use_rgbd_sync else '/launch/composition_mbari_stereo_proc.launch.py'
 
     # Packages Directories
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
@@ -151,13 +153,13 @@ def launch_setup(context, *args, **kwargs):
             parameters=[{"use_sim_time": LaunchConfiguration('use_sim_time')}],
         ),
 
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_rtabmap_ros.launch.py'),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + rtabmap_launch_file),
                 launch_arguments={"node_params": node_params,
                     "rtabmap_core_composition_params": rtabmap_core_composition_params,
                     "stereo_odometry_composition_params": stereo_odometry_composition_params
                     }.items()),
 
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + '/launch/composition_mbari_stereo_proc.launch.py')),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + image_proc_launch_file)),
 
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
