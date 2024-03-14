@@ -201,7 +201,7 @@ def launch_setup(context, *args, **kwargs):
                     namespace=LaunchConfiguration('namespace'),
                     remappings=[
                         ("left/image_rect", LaunchConfiguration('left_image_topic')),
-                        ("right/image_rect", LaunchConfiguration('right_image_topic')),
+                        ("right/image_rect", LaunchConfiguration('depth_image_topic')),
                         ("left/camera_info", LaunchConfiguration('left_camera_info_topic')),
                         ("right/camera_info", LaunchConfiguration('right_camera_info_topic')),
                     ]
