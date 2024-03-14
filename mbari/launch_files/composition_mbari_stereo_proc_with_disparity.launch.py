@@ -77,11 +77,30 @@ def generate_launch_description():
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 ),
+                ComposableNode(
+                    package='stereo_image_proc',
+                    plugin='stereo_image_proc::DisparityNode',
+                    name='disparity_node',
+                    namespace='stereo_camera/',
+                    remappings=[
+                        ('left/image_rect', 'left/image_rect_color')
+                    ],
+                    parameters=[{
+                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
+                    }]
+                ),
+                ComposableNode(
+                    package='mbari_image_proc',
+                    plugin='mbari_image_proc::DisparityToDepth',
+                    name='disparity_to_depth_node',
+                    parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                ),
             ],
         ),
         ComposableNodeContainer(
             condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
-            name='image_proc_container_left',
+            name='image_proc_container',
             package='rclcpp_components',
             executable='component_container',
             namespace='',
@@ -110,16 +129,6 @@ def generate_launch_description():
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
                 ),
-            ],
-            output='screen'
-        ),
-        ComposableNodeContainer(
-            condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
-            name='image_proc_container_right',
-            package='rclcpp_components',
-            executable='component_container',
-            namespace='',
-            composable_node_descriptions=[
                 ComposableNode(
                     package='image_proc',
                     plugin='image_proc::DebayerNode',
@@ -144,7 +153,26 @@ def generate_launch_description():
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
-                )
+                ),
+                ComposableNode(
+                    package='stereo_image_proc',
+                    plugin='stereo_image_proc::DisparityNode',
+                    name='disparity_node',
+                    namespace='stereo_camera/',
+                    remappings=[
+                        ('left/image_rect', 'left/image_rect_color')
+                    ],
+                    parameters=[{
+                        'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
+                        'use_sim_time': LaunchConfiguration('use_sim_time'),
+                    }]
+                ),
+                ComposableNode(
+                    package='mbari_image_proc',
+                    plugin='mbari_image_proc::DisparityToDepth',
+                    name='disparity_to_depth_node',
+                    parameters=[{'use_sim_time': LaunchConfiguration('use_sim_time')}],
+                ),
             ],
             output='screen'
         ),
