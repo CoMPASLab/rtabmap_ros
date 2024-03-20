@@ -1,34 +1,38 @@
 FROM ros:galactic-ros-base
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG USER_ID
+ARG GROUP_ID
+
 # Install apt dependencies
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:borglab/gtsam-release-4.0 && \
     apt-get install -y \
-        wget \
-        libgtsam-dev \
-        libgtsam-unstable-dev \
-        libboost-all-dev \
-        libpcl-dev \
-        libglib2.0-dev \
-        libyaml-cpp-dev \
-        ros-galactic-navigation2 \
-        ros-galactic-robot-localization \
-        ros-galactic-octomap-msgs \
-        ros-galactic-pcl-conversions \
-        ros-galactic-pcl-ros \
-        ros-galactic-vision-msgs \
-        ros-galactic-ament-cmake-clang-format \
-        ros-galactic-rviz2 \
-        python3-pip \
-        python3-pcl \
-        libqt5svg5-dev && \
+    wget \
+    libgtsam-dev \
+    libgtsam-unstable-dev \
+    libboost-all-dev \
+    libpcl-dev \
+    libglib2.0-dev \
+    libyaml-cpp-dev \
+    ros-galactic-navigation2 \
+    ros-galactic-robot-localization \
+    ros-galactic-octomap-msgs \
+    ros-galactic-pcl-conversions \
+    ros-galactic-pcl-ros \
+    ros-galactic-vision-msgs \
+    ros-galactic-ament-cmake-clang-format \
+    ros-galactic-rviz2 \
+    python3-pip \
+    python3-pcl \
+    libqt5svg5-dev && \
     apt-get remove -y libopencv-core4.2 && \
     apt-get install -y ros-galactic-camera-info-manager
 
+
 ENV CMAKE_INSTALL_PREFIX=/usr/local
-ENV DEPS_DIR=/root/deps
+ENV DEPS_DIR=/home/mbari/deps
 
 WORKDIR ${DEPS_DIR}
 
@@ -41,11 +45,11 @@ RUN git clone --depth 1 --branch 4.2.0 https://github.com/opencv/opencv.git && \
     mkdir build && \
     cd build && \
     cmake \
-        -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-        -D CMAKE_BUILD_TYPE=Release \
-        -D OPENCV_ENABLE_NONFREE=1 \
-        -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
-        .. && \
+    -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D OPENCV_ENABLE_NONFREE=1 \
+    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+    .. && \
     make -j${NUM_THREADS} install && \
     make install && \
     cd ${DEPS_DIR} && \
@@ -58,14 +62,23 @@ RUN git clone https://github.com/lcm-proj/lcm.git && \
     mkdir build && \
     cd build && \
     cmake \
-        -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
-        -D CMAKE_BUILD_TYPE=Release \
-        .. && \
+    -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
+    -D CMAKE_BUILD_TYPE=Release \
+    .. && \
     make -j${NUM_THREADS} install && \
     cd ${DEPS_DIR} && rm -rf lcm
 
+# Install python dependencies
+RUN pip3 install rosbags open3d && \
+    pip3 install --upgrade numpy
+
+# Add user before cloning and building. Could be added later and ws chowned to mbari, too.
+RUN addgroup --gid $GROUP_ID mbari
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID mbari
+USER mbari
+
 # Set the working directory
-WORKDIR /root/rtabmap_ws/src
+WORKDIR /home/mbari/rtabmap_ws/src
 
 ARG READ_TOKEN
 
@@ -89,15 +102,27 @@ RUN git clone https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/rtabmap_ros
 RUN git clone https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git -b ros2
 
 # Run colcon build in workspace directory
-WORKDIR /root/rtabmap_ws
-RUN ldconfig && \
-    . /opt/ros/galactic/setup.sh && \
+WORKDIR /home/mbari/rtabmap_ws
+
+RUN . /opt/ros/galactic/setup.sh && \
     export MAKEFLAGS="-j${NUM_THREADS}" && \
-    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+    colcon build --packages-select cv_bridge --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release &&  \
+    . /home/mbari/rtabmap_ws/install/local_setup.sh && \
+    colcon build --packages-skip cv_bridge --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-# Install python dependencies
-RUN pip3 install rosbags open3d && \
-    pip3 install --upgrade numpy
+WORKDIR /home/mbari/
+USER root
+RUN mkdir rtab_out
 
-# Create the RTAB-Map output directory
-RUN mkdir /root/rtab_out
+RUN echo "source /opt/ros/galactic/setup.bash" >> .bashrc
+RUN echo "source /home/mbari/rtabmap_ws/install/local_setup.bash --extend" >> .bashrc
+
+RUN chown mbari:mbari rtab_out
+RUN chown mbari:mbari .bashrc
+RUN chown -R mbari:mbari deps/
+RUN chown mbari:mbari .
+USER mbari
+
+# Expose VNC and Rviz port, may not be needed
+EXPOSE 5900
+EXPOSE 11311

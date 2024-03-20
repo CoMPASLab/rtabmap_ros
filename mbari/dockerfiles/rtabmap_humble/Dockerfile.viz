@@ -1,4 +1,4 @@
-FROM mbari/rtabmap_ros:latest
+FROM mbari/humble/rtabmap_ros:latest
 
 # nvidia-container-runtime
 ENV NVIDIA_VISIBLE_DEVICES \

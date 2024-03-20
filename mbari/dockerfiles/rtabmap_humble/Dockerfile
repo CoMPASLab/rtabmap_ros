@@ -1,32 +1,35 @@
 FROM ros:humble-ros-base
 ENV DEBIAN_FRONTEND=noninteractive
 
+ARG USER_ID
+ARG GROUP_ID
+
 # Install apt dependencies
 RUN apt-get update && \
     apt-get install -y \
-        wget \
-        vim \
-        libboost-all-dev \
-        libpcl-dev \
-        libglib2.0-dev \
-        libyaml-cpp-dev \
-        ros-humble-robot-localization \
-        ros-humble-octomap-msgs \
-        ros-humble-octomap-msgs \
-        ros-humble-pcl-conversions \
-        ros-humble-pcl-ros \
-        ros-humble-vision-msgs \
-        ros-humble-ament-cmake-clang-format \
-        ros-humble-rviz2 \
-        ros-humble-nav2-msgs \
-        python3-pip \
-        python3-pcl \
-        libqt5svg5-dev && \
+    wget \
+    vim \
+    libboost-all-dev \
+    libpcl-dev \
+    libglib2.0-dev \
+    libyaml-cpp-dev \
+    ros-humble-robot-localization \
+    ros-humble-octomap-msgs \
+    ros-humble-octomap-msgs \
+    ros-humble-pcl-conversions \
+    ros-humble-pcl-ros \
+    ros-humble-vision-msgs \
+    ros-humble-ament-cmake-clang-format \
+    ros-humble-rviz2 \
+    ros-humble-nav2-msgs \
+    python3-pip \
+    python3-pcl \
+    libqt5svg5-dev && \
     apt-get remove -y libopencv-core4.5d && \
     apt-get install -y ros-humble-camera-info-manager
 
 ENV CMAKE_INSTALL_PREFIX=/usr/local
-ENV DEPS_DIR=/root/deps
+ENV DEPS_DIR=/home/mbari/deps
 
 WORKDIR ${DEPS_DIR}
 
@@ -39,11 +42,11 @@ RUN git clone --depth 1 -b 4.5.4 https://github.com/opencv/opencv.git && \
     mkdir build && \
     cd build && \
     cmake \
-        -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
-        -D CMAKE_BUILD_TYPE=Release \
-        -D OPENCV_ENABLE_NONFREE=1 \
-        -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
-        .. && \
+    -D CMAKE_INSTALL_PREFIX=${CMAKE_INSTALL_PREFIX} \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D OPENCV_ENABLE_NONFREE=1 \
+    -D OPENCV_EXTRA_MODULES_PATH=../../opencv_contrib/modules \
+    .. && \
     make -j${NUM_THREADS} install && \
     make install && \
     cd ${DEPS_DIR} && \
@@ -55,9 +58,9 @@ RUN git clone --depth 1 -b v1.5.0 https://github.com/lcm-proj/lcm.git && \
     mkdir build && \
     cd build && \
     cmake \
-        -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
-        -D CMAKE_BUILD_TYPE=Release \
-        .. && \
+    -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
+    -D CMAKE_BUILD_TYPE=Release \
+    .. && \
     make -j${NUM_THREADS} install && \
     cd ${DEPS_DIR} && rm -rf lcm
 
@@ -68,18 +71,27 @@ RUN git clone https://github.com/borglab/gtsam.git && \
     mkdir build && \
     cd build && \
     cmake \
-        -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
-        -D CMAKE_BUILD_TYPE=Release \
-        -D GTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
-        -D GTSAM_USE_SYSTEM_EIGEN=ON \
-        -D GTSAM_BUILD_TESTS=OFF \
-        -D GTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
-        .. && \
+    -D CMAKE_INSTALL_PREFIX=$CMAKE_INSTALL_PREFIX \
+    -D CMAKE_BUILD_TYPE=Release \
+    -D GTSAM_BUILD_WITH_MARCH_NATIVE=OFF \
+    -D GTSAM_USE_SYSTEM_EIGEN=ON \
+    -D GTSAM_BUILD_TESTS=OFF \
+    -D GTSAM_BUILD_EXAMPLES_ALWAYS=OFF \
+    .. && \
     make -j${NUM_THREADS} install && \
     cd ${DEPS_DIR} && rm -rf gtsam
 
+# Install python dependencies
+RUN pip3 install rosbags open3d && \
+    pip3 install --upgrade numpy
+
+# Add user before cloning and building. Could be added later and ws chowned to mbari, too.
+RUN addgroup --gid $GROUP_ID mbari
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID mbari
+USER mbari
+
 # Set the working directory
-WORKDIR /root/rtabmap_ws/src
+WORKDIR /home/mbari/rtabmap_ws/src
 
 ARG READ_TOKEN=<YOUR_TOKEN_HERE>
 
@@ -101,17 +113,28 @@ RUN git clone --depth 1 -b mbari https://oauth2:$READ_TOKEN@gitlab.gimrobotics.f
 # Clone lcm_to_ros (ros2 branch)
 RUN git clone --depth 1 -b ros2 https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/lcm_to_ros.git
 
-# Create the RTAB-Map output directory
-RUN mkdir /root/rtab_out
-
-# Install python dependencies
-RUN pip3 install rosbags open3d && \
-    pip3 install --upgrade numpy
-
 # Run colcon build in workspace directory
-WORKDIR /root/rtabmap_ws
+WORKDIR /home/mbari/rtabmap_ws
 
-RUN ldconfig && \
-    . /opt/ros/humble/setup.sh && \
+RUN . /opt/ros/humble/setup.sh && \
     export MAKEFLAGS="-j${NUM_THREADS}" && \
-    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+    colcon build --packages-select cv_bridge --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release &&  \
+    . /home/mbari/rtabmap_ws/install/local_setup.sh && \
+    colcon build --packages-skip cv_bridge --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+WORKDIR /home/mbari/6
+USER root
+RUN mkdir rtab_out
+
+RUN echo "source /opt/ros/humble/setup.bash" >> .bashrc
+RUN echo "source /home/mbari/rtabmap_ws/install/local_setup.bash --extend" >> .bashrc
+
+RUN chown mbari:mbari rtab_out
+RUN chown mbari:mbari .bashrc
+RUN chown -R mbari:mbari deps/
+RUN chown mbari:mbari .
+USER mbari
+
+# Expose VNC and Rviz port, may not be needed
+EXPOSE 5900
+EXPOSE 11311
