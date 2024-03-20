@@ -122,7 +122,7 @@ RUN . /opt/ros/humble/setup.sh && \
     . /home/mbari/rtabmap_ws/install/local_setup.sh && \
     colcon build --packages-skip cv_bridge --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
 
-WORKDIR /home/mbari/6
+WORKDIR /home/mbari/
 USER root
 RUN mkdir rtab_out
 
