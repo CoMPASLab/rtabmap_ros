@@ -85,12 +85,7 @@ RUN git clone https://github.com/borglab/gtsam.git && \
 RUN pip3 install rosbags open3d && \
     pip3 install --upgrade numpy
 
-# Add user before cloning and building. Could be added later and ws chowned to mbari, too.
-RUN addgroup --gid $GROUP_ID mbari
-RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID mbari
-USER mbari
-
-# Set the working directory
+# Create and set the working directory
 WORKDIR /home/mbari/rtabmap_ws/src
 
 ARG READ_TOKEN=<YOUR_TOKEN_HERE>
@@ -124,15 +119,16 @@ RUN . /opt/ros/humble/setup.sh && \
 
 WORKDIR /home/mbari/
 USER root
-RUN mkdir rtab_out
+RUN mkdir ./rtab_out
 
-RUN echo "source /opt/ros/humble/setup.bash" >> .bashrc
-RUN echo "source /home/mbari/rtabmap_ws/install/local_setup.bash --extend" >> .bashrc
+RUN cp /root/.bashrc ./.bashrc
+RUN echo "source /opt/ros/humble/setup.bash" >> ./.bashrc
+RUN echo "source /home/mbari/rtabmap_ws/install/local_setup.bash --extend" >> ./.bashrc
 
-RUN chown mbari:mbari rtab_out
-RUN chown mbari:mbari .bashrc
-RUN chown -R mbari:mbari deps/
-RUN chown mbari:mbari .
+RUN addgroup --gid $GROUP_ID mbari
+RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID mbari
+
+RUN chown -R mbari:mbari ./
 USER mbari
 
 # Expose VNC and Rviz port, may not be needed
