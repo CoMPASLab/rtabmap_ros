@@ -1,0 +1,79 @@
+/depth_filter:
+  ros__parameters:
+    depth_subscriber: /converted/depth
+    depth_publisher: /depth/filtered
+    base_link_frame_id: base_link_ins
+    depth_ned_frame_id: depth_link_ned
+
+/rtabmap/reset_odometry:
+  ros__parameters:
+    frame_id: base_link_ins
+    guess_frame_id: state_odom
+
+/rtabmap/odometry_filter:
+  ros__parameters:
+    frame_id: base_link_ins
+    odom_subscriber: /converted/state
+    odometry_filter_output_topic: /rtabmap/additional_graph_links
+
+/rtabmap/rtabmap:
+  ros__parameters:
+    frame_id: base_link_ins
+    map_frame_id: map
+    odom_frame_id: odom
+    publish_tf: True # Publish TF between map and odometry
+    odom_tf_angular_variance: 1.0 # If TF is used to get odometry, this is the default angular variance
+    odom_tf_linear_variance: 1.0 # If TF is used to get odometry, this is the default linear variance
+    odom_sensor_sync: False
+    wait_for_transform: 0.2
+    database_path: ~/rtab_out/map.db
+    trajectory_path: output_trajectory.csv
+    approx_sync: True # If timestamps of the input topics should be synchronized using approximate or exact time policy.
+    config_path: "" # Param to use if you want to load Rtab parameters from .ini file
+    queue_size: 10
+    qos_image: 1 # 0=System default, 1=Reliable, 2=Best Effort
+    qos_odom: 2
+    qos_camera_info: 1
+    qos_absolute_depth: 2
+    delete_db_on_start: True
+    Mem/IncrementalMemory: "true"
+    Mem/InitWMWithAllNodes: "false"
+    Optimizer/Strategy: "2"
+    Vis/FeatureType: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    Kp/DetectorStrategy: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    RGBD/OptimizeMaxError: "50.0"
+    Rtabmap/LoopThr: "0.04"
+    SURF/GpuVersion: "false"
+
+/rtabmap/stereo_odometry:
+  ros__parameters:
+    frame_id: base_link_ins
+    odom_frame_id: odom # Frame to output estimated motion to
+    publish_tf: True # Publish TF between odometry and base frame (base_link)
+    wait_for_transform: 0.2
+    approx_sync: True
+    approx_sync_max_interval: 0.0 # (sec) 0 means infinite interval duration (used with approx_sync=true)
+    config_path: "" # Param to use if you want to load Rtab parameters from .ini file
+    queue_size: 10
+    qos: 1 # Image QoS
+    qos_camera_info: 1
+    guess_frame_id: ins_odom # Frame for guess data (output of motion estimation)
+    guess_min_translation: 0.0
+    guess_min_rotation: 0.0
+    Vis/FeatureType: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    Kp/DetectorStrategy: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    SURF/GpuVersion: "false"
+
+/rtabmap/rtabmapviz:
+  ros__parameters:
+    subscribe_stereo: True
+    subscribe_odom_info: True
+    frame_id: base_link_ins
+    odom_frame_id: odom
+    wait_for_transform: 0.2
+    approx_sync: True
+    queue_size: 10
+    qos_image: 1
+    qos_odom: 1
+    qos_camera_info: 1
+    qos_absolute_depth: 2
