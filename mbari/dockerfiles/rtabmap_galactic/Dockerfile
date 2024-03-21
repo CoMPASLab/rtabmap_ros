@@ -39,7 +39,7 @@ USER root
 RUN mkdir ./rtab_out
 
 RUN cp ~/.bashrc ./.bashrc
-RUN echo "source /home/mbari/colcon_ws/install/local_setup.bash --extend" >> ./.bashrc
+RUN echo "source /home/mbari/colcon_ws/install/setup.bash" >> ./.bashrc
 
 RUN addgroup --gid $GROUP_ID mbari
 RUN adduser --disabled-password --gecos '' --uid $USER_ID --gid $GROUP_ID mbari
