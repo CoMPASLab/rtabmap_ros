@@ -23,8 +23,9 @@ def launch_setup(context, *args, **kwargs):
     rtabmap_launch_file = '/launch/composition_mbari_rtabmap_ros.launch.py'
     image_proc_launch_file = '/launch/composition_mbari_stereo_proc_with_disparity.launch.py' if use_rgbd_sync else '/launch/composition_mbari_stereo_proc.launch.py'
 
-    # Packages Directories
+    # Package directories
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
+    republisher_dir = get_package_share_directory('mola_lcm_to_ros2')
 
     # Param configs
     node_params = os.path.join(
@@ -46,7 +47,6 @@ def launch_setup(context, *args, **kwargs):
     )
 
     # Republishers
-    republisher_dir = get_package_share_directory('mola_lcm_to_ros2')
     republisher_config = os.path.join(republisher_dir, 'config', 'minirov_202311_params.yaml')
     camera_republisher_composition_config = os.path.join(republisher_dir, 'config', 'minirov_202311_camera_republisher_composition_params.yaml')
 

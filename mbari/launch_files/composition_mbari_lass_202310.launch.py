@@ -23,8 +23,8 @@ def launch_setup(context, *args, **kwargs):
     image_proc_launch_file = '/launch/composition_mbari_stereo_proc_with_disparity.launch.py' if use_rgbd_sync else '/launch/composition_mbari_stereo_proc.launch.py'
 
     # Package directories
-    lcm_to_ros2_dir = get_package_share_directory('lass_new_lcm_to_ros2')
     rtabmap_ros_dir = get_package_share_directory('rtabmap_ros')
+    republisher_dir = get_package_share_directory('mola_lcm_to_ros2')
 
     # Param configs
     node_params = os.path.join(
@@ -44,6 +44,10 @@ def launch_setup(context, *args, **kwargs):
     right_calib_path = os.path.join(
         get_package_share_directory('rtabmap_ros'), 'launch', 'camera_calibrations', 'PROSILICA_2022', 'rtabmap_calib_right.yaml'
     )
+
+    # Republishers
+    republisher_config = os.path.join(republisher_dir, 'config', 'lass_params.yaml')
+    camera_republisher_composition_config = os.path.join(republisher_dir, 'config', 'lass_camera_republisher_composition_params.yaml')
 
     return [
         # Camera calibration files
@@ -117,7 +121,6 @@ def launch_setup(context, *args, **kwargs):
             namespace=LaunchConfiguration('namespace')
         ),
 
-
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + rtabmap_launch_file),
                 launch_arguments={"node_params": node_params,
                     "rtabmap_core_composition_params": rtabmap_core_composition_params,
@@ -126,49 +129,56 @@ def launch_setup(context, *args, **kwargs):
 
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + image_proc_launch_file)),
 
-        # INS Republisher
+        # DVL republisher
         Node(
-            package='lass_new_lcm_to_ros2', executable='ins_republisher',
-            parameters=[{
-                "ins_channel_lcm": LaunchConfiguration('ins_channel_lcm'),
-                "ins_topic_ros": LaunchConfiguration('ins_topic_ros'),
+            package='mola_lcm_to_ros2', executable='dvl_republisher',
+            name='lass_dvl_republisher',
+            parameters=[republisher_config, {
                 "use_sim_time": LaunchConfiguration('use_sim_time')
-                }],
-            name='lcm_to_ros2_ins_republisher'
+                }]
         ),
 
-        # Depth Republisher
+        # IMU republisher
         Node(
-            package='lass_new_lcm_to_ros2', executable='depth_republisher',
-            parameters=[{
-                "depth_channel_lcm": LaunchConfiguration('depth_channel_lcm'),
-                "depth_topic_ros": LaunchConfiguration('depth_topic_ros'),
+            package='mola_lcm_to_ros2', executable='imu_republisher',
+            name='lass_imu_republisher',
+            parameters=[republisher_config, {
                 "use_sim_time": LaunchConfiguration('use_sim_time')
-                }],
-            name='lcm_to_ros2_depth_republisher'
+                }]
         ),
 
-        # CoMPAS Odometry Republisher
+        # Depth republisher
         Node(
-            package='lass_new_lcm_to_ros2', executable='compas_odom_republisher',
-            parameters=[{
-                "compas_odom_channel_lcm": LaunchConfiguration('compas_odom_channel_lcm'),
-                "compas_odom_topic_ros": LaunchConfiguration('compas_odom_topic_ros'),
+            package='mola_lcm_to_ros2', executable='depth_republisher',
+            name='lass_depth_republisher',
+            parameters=[republisher_config, {
                 "use_sim_time": LaunchConfiguration('use_sim_time')
-                }],
-            name='lcm_to_ros2_compas_odom_republisher'
+                }]
+        ),
+
+        # INS State republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='state_republisher',
+            name='lass_ins_state_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
+        ),
+
+        # CoMPAS State republisher
+        Node(
+            package='mola_lcm_to_ros2', executable='state_republisher',
+            name='lass_compas_state_republisher',
+            parameters=[republisher_config, {
+                "use_sim_time": LaunchConfiguration('use_sim_time')
+                }]
         ),
 
         # Clock republisher
         Node(
-            package='lass_new_lcm_to_ros2', executable='clock_republisher',
-            name='lcm_to_ros2_clock_republisher',
-        ),
-
-        Node(
-            package='lass_new_lcm_to_ros2', executable='multibeam_republisher',
-            name='lcm_to_ros2_multibeam_republisher',
-            output='screen'
+            package='mola_lcm_to_ros2', executable='clock_republisher',
+            name='lass_clock_republisher',
+            parameters=[republisher_config]
         ),
 
         LoadComposableNodes(
@@ -176,10 +186,10 @@ def launch_setup(context, *args, **kwargs):
             target_container='mbari_rtabmap_container',
             composable_node_descriptions=[
                 ComposableNode(
-                    package='lass_new_lcm_to_ros2',
-                    plugin='lass_new_lcm_to_ros2::LCMToROSCameraRepublisher',
-                    name='lcm_to_ros2_camera_republisher',
-                    parameters=[{
+                    package='mola_lcm_to_ros2',
+                    plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
+                    name='lass_camera_republisher',
+                    parameters=[camera_republisher_composition_config, {
                         "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
                         "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
                         "use_sim_time": LaunchConfiguration('use_sim_time'),
@@ -189,10 +199,10 @@ def launch_setup(context, *args, **kwargs):
         ),
         Node(
             condition=UnlessCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
-            package='lass_new_lcm_to_ros2',
+            package='mola_lcm_to_ros2',
             executable='camera_republisher',
-            name='lcm_to_ros2_camera_republisher',
-            parameters=[{
+            name='lass_camera_republisher',
+            parameters=[republisher_config, {
                 "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
                 "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
                 "use_sim_time": LaunchConfiguration('use_sim_time'),
