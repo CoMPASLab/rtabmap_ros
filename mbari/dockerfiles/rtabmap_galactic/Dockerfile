@@ -110,7 +110,7 @@ USER root
 RUN mkdir ./rtab_out
 
 RUN cp /root/.bashrc ./.bashrc
-RUN echo "source /opt/ros/humble/setup.bash" >> ./.bashrc
+RUN echo "source /opt/ros/galactic/setup.bash" >> ./.bashrc
 RUN echo "source /home/mbari/rtabmap_ws/install/local_setup.bash --extend" >> ./.bashrc
 
 RUN addgroup --gid $GROUP_ID mbari
