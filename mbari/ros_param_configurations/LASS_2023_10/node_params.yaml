@@ -40,11 +40,15 @@
     Mem/IncrementalMemory: "true"
     Mem/InitWMWithAllNodes: "false"
     Optimizer/Strategy: "2"
-    Vis/FeatureType: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
-    Kp/DetectorStrategy: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    Vis/FeatureType: "0" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    Kp/DetectorStrategy: "0" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
     RGBD/OptimizeMaxError: "50.0"
     Rtabmap/LoopThr: "0.04"
-    SURF/GpuVersion: "false"
+    SURF/GpuVersion: "true"
+    SURF/HessianThreshold: "450"
+    SURF/Octaves: "4"
+    SURF/OctaveLayers: "2"
+    SURF/Extended: "true"
     Stereo/MinDisparity: "20"
     Stereo/MaxDisparity: "100"
     Stereo/DenseStrategy: "0"
@@ -87,24 +91,23 @@
     guess_frame_id: ins_odom # Frame for guess data (output of motion estimation)
     guess_min_translation: 0.0
     guess_min_rotation: 0.0
-    Vis/FeatureType: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
-    Kp/DetectorStrategy: "1" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
-    SURF/GpuVersion: "false"
+    Vis/FeatureType: "0" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    Kp/DetectorStrategy: "0" # 0=SURF 1=SIFT 2=ORB 3=FAST/FREAK 4=FAST/BRIEF 5=GFTT/FREAK 6=GFTT/BRIEF 7=BRISK 8=GFTT/ORB 9=KAZE 10=ORB-OCTREE 11=SuperPoint 12=SURF/FREAK 13=GFTT/DAISY 14=SURF/DAISY 15=PyDetector
+    SURF/GpuVersion: "true"
+    SURF/HessianThreshold: "450"
+    SURF/Octaves: "4"
+    SURF/OctaveLayers: "2"
+    SURF/Extended: "true"
     Stereo/MinDisparity: "20"
     Stereo/MaxDisparity: "100"
     Vis/MinDepth: "1.0"
     Vis/MaxDepth: "5.0"
     Vis/GridRows: "5"
     Vis/GridCols: "5"
-    Vis/MinInliers: "7"
+    Vis/MinInliers: "10"
     Vis/ForwardEstOnly: "true"
     Vis/MaxFreatures: "1000"
     Vis/DepthAsMask: "true"
-    Vis/CorType: "0"
-    SURF/HessianThreshold: "450"
-    SURF/Octaves: "5"
-    SURF/OctaveLayers: "3"
-    SURF/Extended: "true"
 
 
 /rtabmap/rtabmapviz:
