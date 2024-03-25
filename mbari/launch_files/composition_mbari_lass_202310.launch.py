@@ -30,12 +30,6 @@ def launch_setup(context, *args, **kwargs):
     node_params = os.path.join(
         get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'node_params.yaml'
     )
-    rtabmap_core_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'rtabmap_core_composition_params.yaml'
-    )
-    stereo_odometry_composition_params = os.path.join(
-        get_package_share_directory('rtabmap_ros'), 'launch', 'ros_param_configurations', params_folder, 'stereo_odometry_composition_params.yaml'
-    )
 
     # Camera calibration files
     left_calib_path = os.path.join(
@@ -56,10 +50,6 @@ def launch_setup(context, *args, **kwargs):
 
         # File for params for all non-composition nodes
         DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
-
-        # Composition params
-        DeclareLaunchArgument('rtabmap_core_composition_params', default_value=rtabmap_core_composition_params, description=''),
-        DeclareLaunchArgument('stereo_odometry_composition_params', default_value=stereo_odometry_composition_params, description=''),
 
         DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
         DeclareLaunchArgument('left_image_topic',        default_value=[LaunchConfiguration('stereo_namespace'), '/left/image_rect_color'], description='Input topic for either stereo sync or Rtabmap directly'),
@@ -122,10 +112,7 @@ def launch_setup(context, *args, **kwargs):
         ),
 
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + rtabmap_launch_file),
-                launch_arguments={"node_params": node_params,
-                    "rtabmap_core_composition_params": rtabmap_core_composition_params,
-                    "stereo_odometry_composition_params": stereo_odometry_composition_params
-                    }.items()),
+                launch_arguments={"node_params": node_params}.items()),
 
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + image_proc_launch_file)),
 

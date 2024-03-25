@@ -11,6 +11,7 @@ from launch.substitutions import LaunchConfiguration
 from launch.conditions import IfCondition, UnlessCondition
 from launch_ros.actions import Node
 from typing import Text
+import yaml
 
 #Based on https://answers.ros.org/question/363763/ros2-how-best-to-conditionally-include-a-prefix-in-a-launchpy-file/
 class ConditionalText(Substitution):
@@ -28,6 +29,27 @@ class ConditionalText(Substitution):
 def launch_setup(context, *args, **kwargs):
 
     use_synced_rgbd = IfCondition(context.perform_substitution(LaunchConfiguration('input_rgbd_converted_from_stereo')))._predicate_func(context)
+    use_composition = IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context)
+
+    rtabmap_core_composition_params = {}
+    stereo_odometry_composition_params = {}
+
+    # Workaround used to reasonably pass params to ComposableNodes
+    if use_composition:
+        params_path = context.perform_substitution(LaunchConfiguration('node_params'))
+        with open(params_path, 'r') as file:
+            yaml_root = yaml.safe_load(file)
+            namespace = context.perform_substitution(LaunchConfiguration('namespace'))
+            global_params = yaml_root['/**']['ros__parameters'] if yaml_root.get('/**') else {}
+            namespace_params = yaml_root[namespace + '/**']['ros__parameters'] if yaml_root.get(namespace + '/**') else {}
+            rtabmap_core_params = yaml_root[namespace + '/rtabmap']['ros__parameters'] if yaml_root.get(namespace + '/rtabmap') else {}
+            stereo_odometry_params = yaml_root[namespace + '/stereo_odometry']['ros__parameters'] if yaml_root.get(namespace + '/stereo_odometry') else {}
+            rtabmap_core_composition_params.update(global_params)
+            rtabmap_core_composition_params.update(namespace_params)
+            rtabmap_core_composition_params.update(rtabmap_core_params)
+            stereo_odometry_composition_params.update(global_params)
+            stereo_odometry_composition_params.update(namespace_params)
+            stereo_odometry_composition_params.update(stereo_odometry_params)
 
     return [
         #These arguments should not be modified directly, see referred topics without "_relay" suffix above
@@ -45,7 +67,7 @@ def launch_setup(context, *args, **kwargs):
             composable_node_descriptions=[
                 ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::StereoOdometry',
-                    parameters=[LaunchConfiguration('stereo_odometry_composition_params'),
+                    parameters=[stereo_odometry_composition_params,
                         {"use_sim_time": LaunchConfiguration("use_sim_time")}],
                     namespace=LaunchConfiguration('namespace'),
                     remappings=[
@@ -58,7 +80,7 @@ def launch_setup(context, *args, **kwargs):
                 ),
                 ComposableNode(
                     package='rtabmap_ros', plugin='rtabmap_ros::CoreWrapper',
-                    parameters=[LaunchConfiguration('rtabmap_core_composition_params'), {
+                    parameters=[rtabmap_core_composition_params, {
                         "use_sim_time": LaunchConfiguration("use_sim_time"),
                         "subscribe_stereo": not use_synced_rgbd,
                         "subscribe_rgb": False,
@@ -159,8 +181,6 @@ def generate_launch_description():
 
         # Config files
         DeclareLaunchArgument('node_params', description='ROS params file to share among Nodes that are not ComposableNodes'),
-        DeclareLaunchArgument('rtabmap_core_composition_params', description='Params file for ComposableNode version of rtabmap core'),
-        DeclareLaunchArgument('stereo_odometry_composition_params', description='Params file for ComposableNode version of rtabmap stereo odometry'),
 
         # Absolute depth topic
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),
