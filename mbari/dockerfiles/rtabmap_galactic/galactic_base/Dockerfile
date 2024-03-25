@@ -69,7 +69,7 @@ RUN git clone https://github.com/lcm-proj/lcm.git && \
 RUN pip3 install rosbags open3d && \
     pip3 install --upgrade numpy
 
-RUN echo "source /opt/ros/galactic/setup.bash" >> ~/.bashrc
+RUN echo 'source /opt/ros/galactic/setup.bash' >> ~/.bashrc
 
 WORKDIR /home/mbari/
 

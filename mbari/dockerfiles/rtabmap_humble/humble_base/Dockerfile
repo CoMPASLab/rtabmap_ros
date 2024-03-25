@@ -98,8 +98,8 @@ RUN git clone https://github.com/borglab/gtsam.git && \
 RUN pip3 install rosbags open3d && \
     pip3 install --upgrade numpy
 
-RUN echo "source /opt/ros/humble/setup.bash" >> ~/.bashrc && \
-    echo "export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}" >> ~/.bashrc
+RUN echo 'export PATH=/usr/local/cuda-11.8/bin${PATH:+:${PATH}}' >> ~/.bashrc && \
+    echo 'source /opt/ros/humble/setup.bash' >> ~/.bashrc
 
 WORKDIR /home/mbari/
 
