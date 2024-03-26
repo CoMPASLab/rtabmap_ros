@@ -13,6 +13,22 @@ from launch_ros.actions import Node
 from typing import Text
 import yaml
 
+
+# Workaround used to reasonably pass params to ComposableNodes
+def parse_params_from_yaml_for_composable_node(yaml_path, node_name, namespace = ''):
+    composition_params = {}
+    with open(yaml_path, 'r') as file:
+        param_dict = yaml.safe_load(file)
+        # Global params
+        composition_params.update(param_dict['/**']['ros__parameters'] if param_dict.get('/**') else {})
+        if namespace != '':
+            # Params common to namespace
+            composition_params.update(param_dict[namespace + '/**']['ros__parameters'] if param_dict.get(namespace + '/**') else {})
+        # Params exclusive to this node
+        composition_params.update(param_dict[namespace + node_name]['ros__parameters'] if param_dict.get(namespace + node_name) else {})
+    return composition_params
+
+
 #Based on https://answers.ros.org/question/363763/ros2-how-best-to-conditionally-include-a-prefix-in-a-launchpy-file/
 class ConditionalText(Substitution):
     def __init__(self, text_if, text_else, condition):
@@ -29,27 +45,17 @@ class ConditionalText(Substitution):
 def launch_setup(context, *args, **kwargs):
 
     use_synced_rgbd = IfCondition(context.perform_substitution(LaunchConfiguration('input_rgbd_converted_from_stereo')))._predicate_func(context)
-    use_composition = IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context)
 
     rtabmap_core_composition_params = {}
     stereo_odometry_composition_params = {}
 
-    # Workaround used to reasonably pass params to ComposableNodes
-    if use_composition:
-        params_path = context.perform_substitution(LaunchConfiguration('node_params'))
-        with open(params_path, 'r') as file:
-            yaml_root = yaml.safe_load(file)
-            namespace = context.perform_substitution(LaunchConfiguration('namespace'))
-            global_params = yaml_root['/**']['ros__parameters'] if yaml_root.get('/**') else {}
-            namespace_params = yaml_root[namespace + '/**']['ros__parameters'] if yaml_root.get(namespace + '/**') else {}
-            rtabmap_core_params = yaml_root[namespace + '/rtabmap']['ros__parameters'] if yaml_root.get(namespace + '/rtabmap') else {}
-            stereo_odometry_params = yaml_root[namespace + '/stereo_odometry']['ros__parameters'] if yaml_root.get(namespace + '/stereo_odometry') else {}
-            rtabmap_core_composition_params.update(global_params)
-            rtabmap_core_composition_params.update(namespace_params)
-            rtabmap_core_composition_params.update(rtabmap_core_params)
-            stereo_odometry_composition_params.update(global_params)
-            stereo_odometry_composition_params.update(namespace_params)
-            stereo_odometry_composition_params.update(stereo_odometry_params)
+    if IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context):
+        node_params_config = context.perform_substitution(LaunchConfiguration('node_params'))
+        namespace = context.perform_substitution(LaunchConfiguration('namespace'))
+        rtabmap_core_composition_params = parse_params_from_yaml_for_composable_node(node_params_config,
+                '/rtabmap', namespace)
+        stereo_odometry_composition_params = parse_params_from_yaml_for_composable_node(node_params_config,
+                '/stereo_odometry', namespace)
 
     return [
         #These arguments should not be modified directly, see referred topics without "_relay" suffix above

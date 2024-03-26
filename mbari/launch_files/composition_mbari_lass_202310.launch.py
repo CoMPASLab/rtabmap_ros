@@ -9,7 +9,22 @@ from launch.conditions import IfCondition, UnlessCondition
 from ament_index_python.packages import get_package_share_directory
 from launch_ros.actions import LoadComposableNodes
 from launch_ros.descriptions import ComposableNode
+import yaml
 
+
+# Workaround used to reasonably pass params to ComposableNodes
+def parse_params_from_yaml_for_composable_node(yaml_path, node_name, namespace = ''):
+    composition_params = {}
+    with open(yaml_path, 'r') as file:
+        param_dict = yaml.safe_load(file)
+        # Global params
+        composition_params.update(param_dict['/**']['ros__parameters'] if param_dict.get('/**') else {})
+        if namespace != '':
+            # Params common to namespace
+            composition_params.update(param_dict[namespace + '/**']['ros__parameters'] if param_dict.get(namespace + '/**') else {})
+        # Params exclusive to this node
+        composition_params.update(param_dict[namespace + node_name]['ros__parameters'] if param_dict.get(namespace + node_name) else {})
+    return composition_params
 
 
 def launch_setup(context, *args, **kwargs):
@@ -41,7 +56,10 @@ def launch_setup(context, *args, **kwargs):
 
     # Republishers
     republisher_config = os.path.join(republisher_dir, 'config', 'lass_params.yaml')
-    camera_republisher_composition_config = os.path.join(republisher_dir, 'config', 'lass_camera_republisher_composition_params.yaml')
+
+    camera_republisher_composition_params = {}
+    if IfCondition(context.perform_substitution(LaunchConfiguration('use_memory_sharing_with_rtabmap')))._predicate_func(context):
+        camera_republisher_composition_params = parse_params_from_yaml_for_composable_node(republisher_config, 'lass_camera_republisher')
 
     return [
         # Camera calibration files
@@ -176,7 +194,7 @@ def launch_setup(context, *args, **kwargs):
                     package='mola_lcm_to_ros2',
                     plugin='mola_lcm_to_ros2::LCMToROSCameraRepublisher',
                     name='lass_camera_republisher',
-                    parameters=[camera_republisher_composition_config, {
+                    parameters=[camera_republisher_composition_params, {
                         "left_calib_file_path": LaunchConfiguration('left_calib_file_path'),
                         "right_calib_file_path": LaunchConfiguration('right_calib_file_path'),
                         "use_sim_time": LaunchConfiguration('use_sim_time'),
