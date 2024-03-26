@@ -241,7 +241,7 @@ def generate_launch_description():
         DeclareLaunchArgument('use_sim_time',  default_value='true', description='Whether to use ROS sim time'),
         DeclareLaunchArgument('launch_prefix', default_value='', description='For debugging purpose, it fills prefix tag of the nodes, e.g., "xterm -e gdb -ex run --args"'),
         DeclareLaunchArgument('namespace',     default_value='/rtabmap', description=''),
-        DeclareLaunchArgument('rtabmapviz',     default_value='false',  description='Launch RTAB-Map UI (optional).'),
+        DeclareLaunchArgument('rtabmapviz',     default_value='true',  description='Launch RTAB-Map UI (optional).'),
 
         DeclareLaunchArgument('frame_to_convert_to_from_base_link_frd',     default_value='base_link', description=''),
 
@@ -255,7 +255,7 @@ def generate_launch_description():
         DeclareLaunchArgument('input_rgbd_converted_from_stereo', default_value='true', description='Whether to convert stereo images to RGBD format before sending them to Rtabmap core'),
 
         # Parameter for toggling composition
-        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='false', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
+        DeclareLaunchArgument('use_memory_sharing_with_rtabmap', default_value='true', description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'),
 
         DeclareLaunchArgument('use_system_default_qos', default_value='true', description='Use the RMW QoS settings for the image and camera info subscriptions.'),
 
