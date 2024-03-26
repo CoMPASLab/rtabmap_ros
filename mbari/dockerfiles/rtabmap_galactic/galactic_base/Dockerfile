@@ -1,7 +1,7 @@
 FROM ros:galactic-ros-base
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install apt dependencies
+# Install apt and python dependencies
 RUN apt-get update && \
     apt-get install -y software-properties-common && \
     add-apt-repository ppa:borglab/gtsam-release-4.0 && \
@@ -27,7 +27,11 @@ RUN apt-get update && \
     python3-pcl \
     libqt5svg5-dev && \
     apt-get remove -y libopencv-core4.2 && \
-    apt-get install -y ros-galactic-camera-info-manager
+    apt-get install -y ros-galactic-camera-info-manager && \
+    pip3 install --no-cache-dir rosbags open3d && \
+    pip3 install --no-cache-dir --upgrade numpy && \
+    apt-get clean && \
+    echo 'source /opt/ros/galactic/setup.bash' >> ~/.bashrc
 
 ENV CMAKE_INSTALL_PREFIX=/usr/local
 ENV DEPS_DIR=/home/mbari/deps
@@ -50,10 +54,9 @@ RUN git clone --depth 1 --branch 4.2.0 https://github.com/opencv/opencv.git && \
     .. && \
     make -j${NUM_THREADS} install && \
     make install && \
-    cd ${DEPS_DIR}
-
-# Clone, build, and install LCM @ v1.4.0
-RUN git clone https://github.com/lcm-proj/lcm.git && \
+    cd ${DEPS_DIR} && \
+# Clone, build, and install LCM @ v1.4.0 \
+    git clone https://github.com/lcm-proj/lcm.git && \
     cd lcm && \
     git checkout v1.4.0 && \
     mkdir build && \
@@ -63,15 +66,21 @@ RUN git clone https://github.com/lcm-proj/lcm.git && \
     -D CMAKE_BUILD_TYPE=Release \
     .. && \
     make -j${NUM_THREADS} install && \
-    cd ${DEPS_DIR}
+    cd /home/mbari/ && \
+    rm -rf /home/mbari/deps/
 
-# Install python dependencies
-RUN pip3 install rosbags open3d && \
-    pip3 install --upgrade numpy
-
-RUN echo 'source /opt/ros/galactic/setup.bash' >> ~/.bashrc
+ARG READ_TOKEN=<YOUR_TOKEN_HERE>
 
 WORKDIR /home/mbari/
 
-RUN rm -rf /home/mbari/deps/
-RUN mkdir -p /home/mbari/colcon_ws/src/
+# Clone and build MBARI rtabmap msgs (main branch)
+RUN mkdir -p colcon_ws/src/ && \
+    cd colcon_ws/src && \
+    git clone --depth 1 -b main https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/mbari_rtabmap_msgs.git && \
+    cd .. && \
+    . /opt/ros/galactic/setup.sh && \
+    export MAKEFLAGS="-j${NUM_THREADS}" && \
+    colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release && \
+    echo 'source /home/mbari/colcon_ws/install/setup.bash' >> ~/.bashrc && \
+# Could not remove deps dir itself when it was still the WORKDIR \
+    rm -rf /home/mbari/deps/
