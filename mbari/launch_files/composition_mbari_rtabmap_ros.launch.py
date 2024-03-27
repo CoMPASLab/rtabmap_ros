@@ -150,8 +150,14 @@ def launch_setup(context, *args, **kwargs):
 
         Node(
             package='rtabmap_ros', executable='rtabmapviz', output='screen',
-            parameters=[LaunchConfiguration('node_params'),
-                {"use_sim_time": LaunchConfiguration("use_sim_time")}],
+            parameters=[LaunchConfiguration('node_params'), {
+                "use_sim_time": LaunchConfiguration("use_sim_time"),
+                "subscribe_stereo": not use_synced_rgbd,
+                "subscribe_rgb": False,
+                "subscribe_rgbd": use_synced_rgbd,
+                "subscribe_depth": False,
+                "subscribe_odom_info": True,
+                }],
             namespace=LaunchConfiguration('namespace'),
             remappings=[
                 ("left/image_rect", LaunchConfiguration('left_image_topic_relay')),
@@ -186,7 +192,7 @@ def generate_launch_description():
         DeclareLaunchArgument('odom_topic', default_value='odom',  description='Odometry topic name.'),
 
         # Config files
-        DeclareLaunchArgument('node_params', description='ROS params file to share among Nodes that are not ComposableNodes'),
+        DeclareLaunchArgument('node_params', description='ROS params file to be provided to nodes'),
 
         # Absolute depth topic
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth',  description='Absolute depth topic name.'),

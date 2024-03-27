@@ -68,7 +68,7 @@ def launch_setup(context, *args, **kwargs):
         DeclareLaunchArgument('right_calib_file_path', default_value=right_calib_path),
 
         # File for params for all non-composition nodes
-        DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to share among Nodes that are not ComposableNodes'),
+        DeclareLaunchArgument('node_params',  default_value=node_params, description='ROS params file to be provided to nodes'),
 
         DeclareLaunchArgument('stereo_namespace',        default_value='/stereo_camera', description=''),
         DeclareLaunchArgument('left_image_topic',        default_value=[LaunchConfiguration('stereo_namespace'), '/left/image_rect_color'], description='Input topic for either stereo sync or Rtabmap directly'),
@@ -164,7 +164,8 @@ def launch_setup(context, *args, **kwargs):
         IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + rtabmap_launch_file),
                 launch_arguments={"node_params": node_params}.items()),
 
-        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + image_proc_launch_file)),
+        IncludeLaunchDescription(PythonLaunchDescriptionSource(rtabmap_ros_dir + image_proc_launch_file),
+                launch_arguments={"node_params": node_params}.items()),
 
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
