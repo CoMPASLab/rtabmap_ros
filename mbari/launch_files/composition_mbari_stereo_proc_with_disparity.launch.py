@@ -1,29 +1,32 @@
 from launch import LaunchDescription
-from launch.actions import DeclareLaunchArgument
+from launch.actions import DeclareLaunchArgument, OpaqueFunction
 from launch.substitutions import LaunchConfiguration
 from launch_ros.descriptions import ComposableNode
 from launch_ros.actions import LoadComposableNodes, ComposableNodeContainer
 from launch.conditions import IfCondition, UnlessCondition
+import yaml
 
-def generate_launch_description():
-    return LaunchDescription([
-        DeclareLaunchArgument(
-            name='approximate_sync', default_value='false',
-            description='Whether to use approximate synchronization of topics. Set to true if '
-                        'the left and right cameras do not produce exactly synced timestamps.'
-        ),
-        DeclareLaunchArgument(
-            name='use_system_default_qos', default_value='true',
-            description='Use the RMW QoS settings for the image and camera info subscriptions.'
-        ),
-        DeclareLaunchArgument(
-            name='use_sim_time', default_value='true',
-            description='Whether to use simulated clock'
-        ),
-        DeclareLaunchArgument(
-            name='use_memory_sharing_with_rtabmap', default_value='false',
-            description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'
-        ),
+# Workaround used to reasonably pass params to ComposableNodes
+def parse_params_from_yaml_for_composable_node(yaml_path, node_name, namespace = ''):
+    composition_params = {}
+    with open(yaml_path, 'r') as file:
+        param_dict = yaml.safe_load(file)
+        # Global params
+        composition_params.update(param_dict['/**']['ros__parameters'] if param_dict.get('/**') else {})
+        if namespace != '':
+            # Params common to namespace
+            composition_params.update(param_dict[namespace + '/**']['ros__parameters'] if param_dict.get(namespace + '/**') else {})
+        # Params exclusive to this node
+        composition_params.update(param_dict[namespace + node_name]['ros__parameters'] if param_dict.get(namespace + node_name) else {})
+    return composition_params
+
+def launch_setup(context, *args, **kwargs):
+
+    node_params_config = context.perform_substitution(LaunchConfiguration('node_params'))
+    disparity_node_composition_params = parse_params_from_yaml_for_composable_node(node_params_config,
+            '/disparity_node', '/stereo_camera')
+
+    return [
         LoadComposableNodes(
             condition=IfCondition(LaunchConfiguration('use_memory_sharing_with_rtabmap')),
             target_container='mbari_rtabmap_container',
@@ -85,7 +88,7 @@ def generate_launch_description():
                     remappings=[
                         ('left/image_rect', 'left/image_rect_color')
                     ],
-                    parameters=[{
+                    parameters=[disparity_node_composition_params, {
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
@@ -162,7 +165,7 @@ def generate_launch_description():
                     remappings=[
                         ('left/image_rect', 'left/image_rect_color')
                     ],
-                    parameters=[{
+                    parameters=[disparity_node_composition_params, {
                         'use_system_default_qos': LaunchConfiguration('use_system_default_qos'),
                         'use_sim_time': LaunchConfiguration('use_sim_time'),
                     }]
@@ -176,5 +179,28 @@ def generate_launch_description():
             ],
             output='screen'
         ),
+    ]
+
+def generate_launch_description():
+    return LaunchDescription([
+        DeclareLaunchArgument(
+            name='approximate_sync', default_value='false',
+            description='Whether to use approximate synchronization of topics. Set to true if '
+                        'the left and right cameras do not produce exactly synced timestamps.'
+        ),
+        DeclareLaunchArgument(
+            name='use_system_default_qos', default_value='true',
+            description='Use the RMW QoS settings for the image and camera info subscriptions.'
+        ),
+        DeclareLaunchArgument(
+            name='use_sim_time', default_value='true',
+            description='Whether to use simulated clock'
+        ),
+        DeclareLaunchArgument(
+            name='use_memory_sharing_with_rtabmap', default_value='false',
+            description='Whether to use ROS2 Composition feature for sharing memory between nodes that process images'
+        ),
+        DeclareLaunchArgument('node_params', description='ROS params file to be provided to nodes'),
+        OpaqueFunction(function=launch_setup),
     ])
 

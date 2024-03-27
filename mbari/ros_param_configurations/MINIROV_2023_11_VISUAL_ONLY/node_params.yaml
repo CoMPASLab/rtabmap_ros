@@ -5,6 +5,20 @@
     base_link_frame_id: base_link
     depth_ned_frame_id: depth_link_ned
 
+/stereo_camera/disparity_node:
+  ros__parameters:
+    stereo_algorithm: 0 # 0=BLOCK_MATCHING, 1=SEMI_GLOBAL_BLOCK_MATCHING
+    correlation_window_size: 15
+    min_disparity: 0
+    disparity_range: 128
+    prefilter_size: 9
+    prefilter_cap: 31
+    uniqueness_ratio: 15.0
+    texture_threshold: 10
+    speckle_size: 100
+    speckle_range: 4
+    disp12_max_diff: 0
+
 /rtabmap/rtabmap:
   ros__parameters:
     frame_id: base_link
@@ -55,8 +69,6 @@
 
 /rtabmap/rtabmapviz:
   ros__parameters:
-    subscribe_stereo: True
-    subscribe_odom_info: True
     frame_id: base_link
     odom_frame_id: odom
     wait_for_transform: 0.2
