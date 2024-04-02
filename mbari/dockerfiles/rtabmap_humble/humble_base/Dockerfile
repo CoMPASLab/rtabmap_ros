@@ -106,10 +106,10 @@ ARG READ_TOKEN=<YOUR_TOKEN_HERE>
 
 WORKDIR /home/mbari/
 
-# Clone and build MBARI rtabmap msgs (main branch)
+# Clone and build MBARI rtabmap msgs (tag 0.20.20)
 RUN mkdir -p colcon_ws/src/ && \
     cd colcon_ws/src && \
-    git clone --depth 1 -b main https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/mbari_rtabmap_msgs.git && \
+    git clone --depth 1 -b 0.20.20 https://oauth2:$READ_TOKEN@gitlab.gimrobotics.fi/mbari/mbari_rtabmap_msgs.git && \
     cd .. && \
     . /opt/ros/humble/setup.sh && \
     export MAKEFLAGS="-j${NUM_THREADS}" && \
