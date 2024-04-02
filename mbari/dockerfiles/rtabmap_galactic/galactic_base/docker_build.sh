@@ -1,3 +1,3 @@
 #!/usr/bin/env bash
 
-docker build -t mbari/galactic/base --build-arg NUM_THREADS=8 .
+docker build -t mbari/galactic/base --build-arg NUM_THREADS=8 --build-arg READ_TOKEN=$@ .
