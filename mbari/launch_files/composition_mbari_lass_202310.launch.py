@@ -269,9 +269,6 @@ def generate_launch_description():
         # Additional constraints topics
         DeclareLaunchArgument('absolute_depth_topic', default_value='/depth/filtered'),
 
-        # Whether to use visual odometry only
-        DeclareLaunchArgument('visual_odometry_only', default_value='true'),
-
         # Input RGBD to Rtabmap
         DeclareLaunchArgument('input_rgbd_converted_from_stereo', default_value='false', description='Whether to convert stereo images to RGBD format before sending them to Rtabmap core'),
 
