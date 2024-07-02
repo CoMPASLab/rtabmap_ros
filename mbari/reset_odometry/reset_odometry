@@ -10,7 +10,7 @@ import tf2_ros
 import tf2_msgs
 from rclpy.node import Node
 
-from rtabmap_ros.srv import ResetPose
+from mbari_rtabmap_msgs.srv import ResetPose
 
 
 def get_euler_ypr(x: float, y: float, z: float, w: float) -> (float, float, float):
