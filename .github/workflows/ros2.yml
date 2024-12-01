@@ -3,9 +3,9 @@ name: ros2
 
 on:
   push:
-    branches: [ ros2 ]
+    branches: [ humble-devel ]
   pull_request:
-    branches: [ ros2 ]
+    branches: [ humble-devel ]
 
 env:
   BUILD_TYPE: Release
@@ -48,7 +48,7 @@ jobs:
         sudo apt update
         sudo apt upgrade -y
     - run: |
-        echo "repositories:\n  introlab/rtabmap:\n    type: git\n    url: https://github.com/introlab/rtabmap.git\n    version: master\n" > /tmp/deps.repos &&\
+        echo "repositories:\n  introlab/rtabmap:\n    type: git\n    url: https://github.com/introlab/rtabmap.git\n    version: humble-devel\n" > /tmp/deps.repos &&\
         cat /tmp/deps.repos
     - uses: ros-tooling/action-ros-ci@v0.4
       with:
