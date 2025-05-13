@@ -184,11 +184,15 @@ private:
 	void fiducialDetectionsAsyncCallback(const fiducial_msgs::msgs::FiducialTransformArray::SharedPtr fiducialDetections);
 #endif
 	void imuAsyncCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+	void absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
 	void republishNodeDataCallback(const std_msgs::msg::Int32MultiArray::ConstSharedPtr msg);
 	void interOdomCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 	void interOdomInfoCallback(const nav_msgs::msg::Odometry::ConstSharedPtr & msg1, const rtabmap_msgs::msg::OdomInfo::ConstSharedPtr & msg2);
 
 	void initialPoseCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+
+	void additionalGraphLinkAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg);
+	void additionalGraphLinkOdometryAsyncCallback(const nav_msgs::msg::Odometry::SharedPtr msg);
 
 	void goalCommonCallback(int id,
 			const std::string & label,
@@ -427,6 +431,16 @@ private:
 	std::map<double, rtabmap::Transform> imus_;
 	std::string imuFrameId_;
 	UMutex imuMutex_;
+
+	// Absolute depth
+	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr absoluteDepthSub_;
+	std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> absoluteDepths_;
+	std::string depthFrameId_;
+
+	// Additional graph links
+	rclcpp::Subscription<geometry_msgs::msg::PoseWithCovarianceStamped>::SharedPtr additionalGraphLinkSub_;
+	rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr additionalGraphLinkOdometrySub_;
+    std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> additionalGraphLinks_;
 
 	rclcpp::Subscription<std_msgs::msg::Int32MultiArray>::SharedPtr republishNodeDataSub_;
 

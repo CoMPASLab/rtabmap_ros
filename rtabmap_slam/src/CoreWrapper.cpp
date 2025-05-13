@@ -70,6 +70,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <rtabmap/core/Graph.h>
 #include <rtabmap/core/LocalGridMaker.h>
 #include <rtabmap/core/Optimizer.h>
+#include <rtabmap/core/ArbitraryPoseConstraint.h>
+#include <rtabmap/core/Transform.h>
 
 #ifdef WITH_OCTOMAP_MSGS
 #ifdef RTABMAP_OCTOMAP
@@ -87,6 +89,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include "rtabmap_msgs/srv/get_map.hpp"
 #include "rtabmap_msgs/srv/publish_map.hpp"
 #include "rtabmap_msgs/msg/path.hpp"
+
+// MBARI
+#include <geometry_msgs/msg/detail/pose_with_covariance_stamped__struct.hpp>
+#include <nav_msgs/msg/detail/odometry__struct.hpp>
+#include <opencv2/core/hal/interface.h>
+#include <std_msgs/msg/detail/header__struct.hpp>
+#include <tf2/convert.h>
+#include <tf2_eigen/tf2_eigen.h>
 
 #include "rtabmap_conversions/MsgConversion.h"
 
@@ -291,6 +301,8 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	localGridGround_ = this->create_publisher<sensor_msgs::msg::PointCloud2>("local_grid_ground", 1);
 	localizationPosePub_ = this->create_publisher<geometry_msgs::msg::PoseWithCovarianceStamped>("localization_pose", 1);
 	initialPoseSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("initialpose", 5, std::bind(&CoreWrapper::initialPoseCallback, this, std::placeholders::_1), subOptions);
+	additionalGraphLinkSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("additional_graph_links", 10, std::bind(&CoreWrapper::additionalGraphLinkAsyncCallback, this, std::placeholders::_1));
+	additionalGraphLinkOdometrySub_ = this->create_subscription<nav_msgs::msg::Odometry>("additional_graph_links_odometry", 10, std::bind(&CoreWrapper::additionalGraphLinkOdometryAsyncCallback, this, std::placeholders::_1));
 
 	// planning topics
 	goalSub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>("goal", 5, std::bind(&CoreWrapper::goalCallback, this, std::placeholders::_1), subOptions);
@@ -855,8 +867,10 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 
 	int qosGPS = RMW_QOS_POLICY_RELIABILITY_SYSTEM_DEFAULT;
 	int qosIMU = RMW_QOS_POLICY_RELIABILITY_SYSTEM_DEFAULT;
+	int qosAbsoluteDepth = RMW_QOS_POLICY_RELIABILITY_SYSTEM_DEFAULT;
 	qosGPS = this->declare_parameter("qos_gps", qosGPS);
 	qosIMU = this->declare_parameter("qos_imu", qosIMU);
+	qosAbsoluteDepth = this->declare_parameter("qos_absolute_depth", qosAbsoluteDepth);
 	userDataAsyncSub_ = this->create_subscription<rtabmap_msgs::msg::UserData>("user_data_async", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qosUserData_), std::bind(&CoreWrapper::userDataAsyncCallback, this, std::placeholders::_1), userDataAsyncSubOptions);
 	globalPoseAsyncSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("global_pose", 1, std::bind(&CoreWrapper::globalPoseAsyncCallback, this, std::placeholders::_1), subOptions);
 	gpsFixAsyncSub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>("gps/fix", rclcpp::QoS(1).reliability((rmw_qos_reliability_policy_t)qosGPS), std::bind(&CoreWrapper::gpsFixAsyncCallback, this, std::placeholders::_1), subOptions);
@@ -869,6 +883,7 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	fiducialTransfromsSub_ = this->create_subscription<fiducial_msgs::msg::FiducialTransformArray>("fiducial_transforms", 5, std::bind(&CoreWrapper::fiducialDetectionsAsyncCallback, this, std::placeholders::_1), landmarkSubOptions);
 #endif
 	imuSub_ = this->create_subscription<sensor_msgs::msg::Imu>("imu", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosIMU), std::bind(&CoreWrapper::imuAsyncCallback, this, std::placeholders::_1), imuSubOptions);
+	absoluteDepthSub_ = this->create_subscription<geometry_msgs::msg::PoseWithCovarianceStamped>("absolute_depth", rclcpp::QoS(100).reliability((rmw_qos_reliability_policy_t)qosAbsoluteDepth), std::bind(&CoreWrapper::absoluteDepthAsyncCallback, this, std::placeholders::_1));
 	republishNodeDataSub_ = this->create_subscription<std_msgs::msg::Int32MultiArray>(servicePrefix+"republish_node_data", 1, std::bind(&CoreWrapper::republishNodeDataCallback, this, std::placeholders::_1), subOptions);
 
 	parametersClient_ = std::make_shared<rclcpp::AsyncParametersClient>(this, std::string(), rmw_qos_profile_parameters, processingCallbackGroup_);
@@ -2159,6 +2174,130 @@ void CoreWrapper::process(
 			imuMutex_.unlock();
 		}
 
+		// Absolute depths
+		if(!absoluteDepths_.empty())
+		{
+	        // Create temporary vector to store the filtered depth measurements
+			std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAbsoluteDepths;
+
+			// Get the timestamp of the camera pose
+			double poseTimestamp = stamp.nanoseconds() * 1e-9;
+
+			// Check if the last timestamp of the map is higher or equal to the timestamp of the camera pose
+			auto& lastDepthMeasurement = absoluteDepths_.back();
+			double lastDepthTimestamp = lastDepthMeasurement.header.stamp.sec + lastDepthMeasurement.header.stamp.nanosec * 1e-9;
+
+			// Flag to add all the remaining depth measurements to the temporary map
+			bool addRest = false;
+
+			if (lastDepthTimestamp >= poseTimestamp)
+			{
+				// Initialize the depth timestamp, value, frame id and variance with the first message in the queue
+				auto& firstDepthMeasurement = absoluteDepths_.front();
+				double depthTimestamp = firstDepthMeasurement.header.stamp.sec + firstDepthMeasurement.header.stamp.nanosec * 1e-9;
+				float depthValue = firstDepthMeasurement.pose.pose.position.z;
+				cv::Mat depthCovarianceMatrix = cv::Mat(6, 6, CV_64FC1, (void*)firstDepthMeasurement.pose.covariance.data()).clone();
+				float depthVariance = depthCovarianceMatrix.at<double>(2, 2);  // depth variance = variance along z
+				std::string depthFrameId_ = firstDepthMeasurement.header.frame_id;
+
+				// Iterate through the depth measurements
+				for (const auto& depthMsg : absoluteDepths_) {
+					// Get the timestamp and depth value
+					double currentDepthTimestamp = depthMsg.header.stamp.sec + depthMsg.header.stamp.nanosec * 1e-9;
+					float currentDepthValue = depthMsg.pose.pose.position.z;
+
+					if (addRest) {
+						// Add the rest of the depth measurements to the temporary map
+						newAbsoluteDepths.push_back(depthMsg);
+					}
+					else if (depthTimestamp > poseTimestamp)
+					{
+						// If is the first depth measurement with timestamp higher than the camera pose timestamp, then
+						// interpolate with the previous depth measurement
+						double interpolation = (poseTimestamp - depthTimestamp) / (currentDepthTimestamp - depthTimestamp);
+						depthValue = depthValue + (currentDepthValue - depthValue) * interpolation;
+						depthCovarianceMatrix = cv::Mat(6, 6, CV_64FC1, (void*)depthMsg.pose.covariance.data()).clone();
+						depthVariance = depthCovarianceMatrix.at<double>(2, 2);
+
+						// Add the interpolated depth measurement to the temporary vector
+						newAbsoluteDepths.push_back(depthMsg);
+
+						// Add the rest of the depth measurements to the temporary vector
+						addRest = true;
+					}
+					else
+					{
+						// Update the depth measurement and timestamp for measurements with lower timestamp than the camera
+						// pose timestamp
+						depthTimestamp = depthMsg.header.stamp.sec + depthMsg.header.stamp.nanosec * 1e-9;
+						depthValue = depthMsg.pose.pose.position.z;
+					}
+				}
+
+				rtabmap::Transform baseToDepthTransform = rtabmap_conversions::getTransform(frameId_, depthFrameId_, rtabmap_conversions::timestampToROS(data.stamp()), *tfBuffer_, waitForTransform_);
+
+				if(!baseToDepthTransform.isNull())
+				{
+					// Set the absolute depth attribute of the sensor data using the interpolated measurement
+					data.setAbsoluteDepth({depthValue, depthVariance, baseToDepthTransform});
+					data.setAddAbsoluteDepthConstraint(true);
+				}
+			}
+			else
+			{
+				// If the last depth measurement has timestamp lower than the camera pose timestamp, then we drop all the
+				// measurements with timestamp lower than the camera pose timestamp
+				newAbsoluteDepths.push_back(absoluteDepths_.back());
+
+				// Update absolute depth constraint flag
+				data.setAddAbsoluteDepthConstraint(false);
+
+			}
+			// Update the absolute depth measurements queue with the temporary map. In this way, we drop all the
+			// measurements with timestamp lower than the camera pose timestamp
+			absoluteDepths_ = newAbsoluteDepths;
+        }
+
+
+		// Additional graph links
+		if(!additionalGraphLinks_.empty())
+        {
+	        std::vector<geometry_msgs::msg::PoseWithCovarianceStamped> newAdditionalGraphLinks;
+            double poseTimestamp = stamp.nanoseconds() * 1e-9;
+            std::map<std::string, std::map<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
+            for (const auto& poseMsg : additionalGraphLinks_) {
+                double linkTimestamp = poseMsg.header.stamp.sec + poseMsg.header.stamp.nanosec * 1e-9;
+                if (linkTimestamp > poseTimestamp) 
+                {
+                    newAdditionalGraphLinks.push_back(poseMsg);
+                }
+                else
+                {
+                    newestMessagePerId[poseMsg.header.frame_id][linkTimestamp] = poseMsg;
+                }
+            }
+
+            for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
+            {
+                Transform totalTransform;
+                cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
+                for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
+                {
+                    const auto & pose = poseMsgMapping.second;
+                    const auto & transform = rtabmap_conversions::transformFromPoseMsg(pose.pose.pose, true);
+                    const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
+
+                    totalTransform *= transform;
+                    totalCovariance.diag() += covariance.diag();
+                }
+                if (!totalCovariance.empty())
+                {
+                    data.addArbitraryPoseConstraint({totalTransform, totalCovariance});
+                }
+                additionalGraphLinks_ = newAdditionalGraphLinks;
+            }
+        }
+
 		double timeRtabmap = 0.0;
 		double timeUpdateMaps = 0.0;
 		double timePublishMaps = 0.0;
@@ -2633,6 +2772,20 @@ void CoreWrapper::fiducialDetectionsAsyncCallback(const fiducial_msgs::msg::Fidu
 }
 #endif
 
+void CoreWrapper::absoluteDepthAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+{
+	if(!paused_)
+	{
+		absoluteDepths_.push_back(*msg);
+
+		// Keep only the last 1000 depth measurements in the queue
+		if(absoluteDepths_.size() > 1000)
+        {
+            absoluteDepths_.erase(absoluteDepths_.begin());
+        }
+	}
+}
+
 void CoreWrapper::imuAsyncCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
 {
 	if(!paused_)
@@ -2701,6 +2854,34 @@ void CoreWrapper::initialPoseCallback(const geometry_msgs::msg::PoseWithCovarian
 	}
 
 	rtabmap_.setInitialPose(intialPose);
+}
+
+void CoreWrapper::additionalGraphLinkAsyncCallback(const geometry_msgs::msg::PoseWithCovarianceStamped::SharedPtr msg)
+{
+	if(!paused_)
+	{
+	    additionalGraphLinks_.push_back(*msg);
+        if(additionalGraphLinks_.size() > 1000)
+        {
+            additionalGraphLinks_.erase(additionalGraphLinks_.begin());
+        }
+	}
+}
+
+void CoreWrapper::additionalGraphLinkOdometryAsyncCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+{
+	if(!paused_)
+	{
+        const auto & odom = *msg;
+        geometry_msgs::msg::PoseWithCovarianceStamped pose;
+        pose.header = odom.header;
+        pose.pose = odom.pose;
+	    additionalGraphLinks_.push_back(pose);
+        if(additionalGraphLinks_.size() > 1000)
+        {
+            additionalGraphLinks_.erase(additionalGraphLinks_.begin());
+        }
+	}
 }
 
 void CoreWrapper::goalCommonCallback(
@@ -2982,6 +3163,8 @@ void CoreWrapper::resetRtabmapCallback(
 	imus_.clear();
 	imuFrameId_.clear();
 	imuMutex_.unlock();
+	absoluteDepths_.clear();
+	depthFrameId_.clear();
 	interOdoms_.clear();
 	mapToOdomMutex_.lock();
 	mapToOdom_.setIdentity();
@@ -3084,6 +3267,8 @@ void CoreWrapper::loadDatabaseCallback(
 	imus_.clear();
 	imuFrameId_.clear();
 	imuMutex_.unlock();
+	absoluteDepths_.clear();
+	depthFrameId_.clear();
 	interOdoms_.clear();
 	mapToOdomMutex_.lock();
 	mapToOdom_.setIdentity();
