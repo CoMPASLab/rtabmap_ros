@@ -1,0 +1,117 @@
+#!/usr/bin/env python3
+
+import numpy as np
+import rclpy
+import signal
+from geometry_msgs.msg import PoseWithCovarianceStamped
+from nav_msgs.msg import Odometry
+from rclpy.node import Node
+from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy
+from scipy.spatial.transform import Rotation as R
+
+
+class SubPub(Node):
+
+    def __init__(self):
+        super().__init__('odometry_subscriber')
+
+        # Declare parameters
+        self._declare_parameters()
+
+        # Get parameters
+        self.odom_subscriber = self.get_parameter('odom_subscriber').value
+        self.odometry_filter_output_topic = self.get_parameter('odometry_filter_output_topic').value
+        self.frame_id = self.get_parameter('frame_id').value
+
+        # Initialize transform matrices
+        self.current_transform = None
+        self.previous_transform = None
+
+        # Create a subscriber for the odometry
+        self.odometry_subscriber = self.create_subscription(
+            Odometry,
+            self.odom_subscriber,
+            self.odom_callback,
+            QoSProfile(reliability=QoSReliabilityPolicy.BEST_EFFORT, history=QoSHistoryPolicy.KEEP_LAST, depth=10)
+        )
+
+        # Create a publisher for the transformed depth
+        self.odometry_publisher = self.create_publisher(
+            PoseWithCovarianceStamped,
+            self.odometry_filter_output_topic,
+            QoSProfile(depth=10))
+
+        # Register signal handler for SIGINT
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+    def _declare_parameters(self):
+        """
+        Declare parameters for the node
+        """
+        self.declare_parameter('odom_subscriber', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('odometry_filter_output_topic', rclpy.Parameter.Type.STRING)
+        self.declare_parameter('frame_id', rclpy.Parameter.Type.STRING)
+
+    def odom_callback(self, msg) -> None:
+        """
+        Callback function for the odometry subscriber. This function computes the relative pose between the current and
+        the previous pose and publishes it as a PoseWithCovarianceStamped message.
+        """
+        self.previous_transform = self.current_transform
+
+        # Receive odometry message
+        pos = msg.pose.pose.position
+        rot = msg.pose.pose.orientation
+
+        # Parse pose from odometry message to create the current pose
+        self.current_transform = np.eye(4)
+        self.current_transform[:3, :3] = R.from_quat([rot.x, rot.y, rot.z, rot.w]).as_matrix()
+        self.current_transform[:3, -1] = np.array([pos.x, pos.y, pos.z])
+
+        # Compute relative transform
+        if self.previous_transform is None:
+            return
+        else:
+            self.relative_transform = np.linalg.inv(self.previous_transform) @ self.current_transform
+
+            # Get rotation and position from relative transform
+            rel_rot = R.from_matrix(self.relative_transform[:3, :3]).as_quat()
+            rel_pos = self.relative_transform[:3, -1]
+
+        # Create relative pose message
+        pose_msg = PoseWithCovarianceStamped()
+
+        # Populate depth message
+        pose_msg.header.frame_id = self.frame_id
+        pose_msg.header.stamp = msg.header.stamp
+        pose_msg.pose.pose.position.x = rel_pos[0]
+        pose_msg.pose.pose.position.y = rel_pos[1]
+        pose_msg.pose.pose.position.z = rel_pos[2]
+        pose_msg.pose.pose.orientation.x = rel_rot[0]
+        pose_msg.pose.pose.orientation.y = rel_rot[1]
+        pose_msg.pose.pose.orientation.z = rel_rot[2]
+        pose_msg.pose.pose.orientation.w = rel_rot[3]
+        pose_msg.pose.covariance = msg.pose.covariance
+
+        # Publish message
+        self.odometry_publisher.publish(pose_msg)
+
+    def signal_handler(self, sig, frame) -> None:
+        """
+        Signal handler for SIGINT
+        """
+        self.get_logger().info('Shutting down odometry_filter node...')
+        self.destroy_node()
+        rclpy.shutdown()
+
+
+def main(args=None):
+    rclpy.init(args=args)
+
+    ins_subscriber = SubPub()
+
+    rclpy.spin(ins_subscriber)
+
+
+if __name__ == '__main__':
+    main()
