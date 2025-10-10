@@ -2288,7 +2288,9 @@ void CoreWrapper::process(
                     const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
 
                     totalTransform *= transform;
-                    totalCovariance.diag() += covariance.diag();
+                    // We are taking the covariance of the last measurement, instead of integrating it between poses
+					// TODO: This should be revisited
+                    totalCovariance.diag() = covariance.diag();
                 }
                 if (!totalCovariance.empty())
                 {
