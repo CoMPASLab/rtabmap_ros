@@ -2267,7 +2267,7 @@ void CoreWrapper::process(
             std::map<std::string, std::map<double, geometry_msgs::msg::PoseWithCovarianceStamped>> newestMessagePerId;
             for (const auto& poseMsg : additionalGraphLinks_) {
                 double linkTimestamp = poseMsg.header.stamp.sec + poseMsg.header.stamp.nanosec * 1e-9;
-                if (linkTimestamp > poseTimestamp) 
+                if (linkTimestamp > poseTimestamp)
                 {
                     newAdditionalGraphLinks.push_back(poseMsg);
                 }
@@ -2280,17 +2280,36 @@ void CoreWrapper::process(
             for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
                 Transform totalTransform;
-                cv::Mat totalCovariance = cv::Mat::zeros(6, 6, CV_64FC1);
+                cv::Mat totalCovariance = cv::Mat::eye(6, 6, CV_64FC1) * 0.01;  // Initialize with diagonal 0.01
+                cv::Mat lastCovariance;
+
                 for (const auto& poseMsgMapping : poseMsgsPerFrameMapping.second)
                 {
                     const auto & pose = poseMsgMapping.second;
                     const auto & transform = rtabmap_conversions::transformFromPoseMsg(pose.pose.pose, true);
-                    const auto & covariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
+                    lastCovariance = cv::Mat(6,6,CV_64FC1, (void*)pose.pose.covariance.data()).clone();
 
                     totalTransform *= transform;
-                    // We are taking the covariance of the last measurement, instead of integrating it between poses
-					// TODO: This should be revisited
-                    totalCovariance.diag() = covariance.diag();
+                }
+
+                // We are taking the covariance of the last measurement, instead of integrating it between poses
+                // TODO: This should be revisited
+                if (!lastCovariance.empty()) {
+                    // Check if the covariance matrix has valid diagonal values
+                    cv::Mat covDiag = lastCovariance.diag();
+                    bool hasValidCovariance = true;
+                    for (int i = 0; i < 6; i++) {
+                        if (covDiag.at<double>(i) <= 0) {
+                            hasValidCovariance = false;
+                            break;
+                        }
+                    }
+                    if (hasValidCovariance) {
+                        totalCovariance = lastCovariance;
+                    }
+					else {
+						UWARN("Invalid covariance matrix detected in additional graph link, using default covariance.");
+					}
                 }
                 if (!totalCovariance.empty())
                 {
