@@ -18,13 +18,13 @@ def get_euler_ypr(x: float, y: float, z: float, w: float) -> Tuple[float, float,
     """
     Get the yaw, pitch, roll from a quaternion.
     Ported from tf2/include/tf2/impl/utils.h.
-    
+
     Args:
         x: x component of the quaternion
         y: y component of the quaternion
         z: z component of the quaternion
         w: w component of the quaternion
-    
+
     Returns:
         yaw: yaw in radians
         pitch: pitch in radians
@@ -49,7 +49,7 @@ def get_euler_ypr(x: float, y: float, z: float, w: float) -> Tuple[float, float,
         pitch = math.asin(sarg)
         roll = math.atan2(2 * (y * z + w * x), sqw - sqx - sqy + sqz)
         yaw = math.atan2(2 * (x * y + w * z), sqw + sqx - sqy - sqz)
-    
+
     return yaw, pitch, roll
 
 
@@ -57,47 +57,43 @@ class ResetOdometryNode(Node):
     """
     Reset Odometry Node
     """
-    
+
     def __init__(self):
-        super().__init__('reset_odometry')
+        super().__init__("reset_odometry")
         self._declare_parameters()
-        
+
         # Get parameters
-        self.guess_frame_id = self.get_parameter('guess_frame_id').value
-        self.frame_id = self.get_parameter('frame_id').value
-        
+        self.guess_frame_id = self.get_parameter("guess_frame_id").value
+        self.frame_id = self.get_parameter("frame_id").value
+        self.service_name = self.get_parameter("reset_odom_to_pose_service").value
+
         # Create the tf subscriber
-        self.create_subscription(
-            tf2_msgs.msg.TFMessage,
-            '/tf',
-            self.tf_callback,
-            1
-        )
-        
+        self.create_subscription(tf2_msgs.msg.TFMessage, "/tf", self.tf_callback, 1)
+
         # Create the service client
-        self.service_name = '/rtabmap/reset_odom_to_pose'
         self.client = self.create_client(ResetPose, self.service_name)
-        
+
         # Wait for the service to become available
         timeout_sec = 1.0
         while not self.client.wait_for_service(timeout_sec=timeout_sec):
-            self.get_logger().info(f'Service {self.service_name} not available, waiting for {timeout_sec} s...')
-        self.get_logger().info(f'Service {self.service_name} available')
-        
+            self.get_logger().info(f"Service {self.service_name} not available, waiting for {timeout_sec} s...")
+        self.get_logger().info(f"Service {self.service_name} available")
+
         # Create the request
         self.req = ResetPose.Request()
-    
+
     def _declare_parameters(self):
         """
         Declare all node parameters.
         """
-        self.declare_parameter('guess_frame_id', rclpy.Parameter.Type.STRING)
-        self.declare_parameter('frame_id', rclpy.Parameter.Type.STRING)
-    
+        self.declare_parameter("guess_frame_id", rclpy.Parameter.Type.STRING)
+        self.declare_parameter("frame_id", rclpy.Parameter.Type.STRING)
+        self.declare_parameter("reset_odom_to_pose_service", "/rtabmap/stereo_odometry/reset_odom_to_pose")
+
     def tf_callback(self, msg):
         """
         Callback for the tf subscriber.
-        
+
         Args:
             msg: tf message
         """
@@ -106,44 +102,41 @@ class ResetOdometryNode(Node):
         if t.child_frame_id == self.frame_id and t.header.frame_id == self.guess_frame_id:
             # Reset odometry
             self.reset_odometry(t)
-            self.get_logger().info(f'Reset odometry')
+            self.get_logger().info(f"Reset odometry")
             self.destroy_node()
             raise SystemExit(0)
-        
+
     def reset_odometry(self, t):
         # Construct the request
         self.req.x = t.transform.translation.x
         self.req.y = t.transform.translation.y
         self.req.z = t.transform.translation.z
-        
+
         # Convert the quaternion to yaw, pitch, roll
         yaw, pitch, roll = get_euler_ypr(
-            t.transform.rotation.x,
-            t.transform.rotation.y,
-            t.transform.rotation.z,
-            t.transform.rotation.w
+            t.transform.rotation.x, t.transform.rotation.y, t.transform.rotation.z, t.transform.rotation.w
         )
         self.req.roll = roll
         self.req.pitch = pitch
         self.req.yaw = yaw
-        
+
         # Call the service
         self.future = self.client.call_async(self.req)
 
 
 def main(args=None):
     rclpy.init(args=args)
-    
+
     node = ResetOdometryNode()
 
     try:
         rclpy.spin(node)
     except SystemExit:
         pass
-    
+
     node.destroy_node()
     rclpy.shutdown()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
