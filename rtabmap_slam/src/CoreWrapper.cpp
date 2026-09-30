@@ -2432,7 +2432,9 @@ void CoreWrapper::process(
 
             for (const auto& poseMsgsPerFrameMapping : newestMessagePerId)
             {
-                Transform totalTransform;
+                // Identity, not Transform() (null): composing onto a null transform zeroes the
+                // rotation, which re-normalizes to a 180 deg roll and drops the first increment.
+                Transform totalTransform = Transform::getIdentity();
                 cv::Mat totalCovariance = cv::Mat::eye(6, 6, CV_64FC1) * 0.01;  // Initialize with diagonal 0.01
                 cv::Mat lastCovariance;
 
