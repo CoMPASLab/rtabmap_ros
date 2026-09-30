@@ -207,6 +207,9 @@ CoreWrapper::CoreWrapper(const rclcpp::NodeOptions & options) :
 	ULogger::setEventLevel((ULogger::Level)eventLevel);
 
 	publishTf = this->declare_parameter("publish_tf", publishTf);
+	// Descriptors are not needed to display the map but can dominate mapData (e.g. 4000 SIFT
+	// words per node, ~1.6 MB); false strips them from the live mapData only.
+	mapDataDescriptors_ = this->declare_parameter("map_data_descriptors", mapDataDescriptors_);
 	tfDelay = this->declare_parameter("tf_delay", tfDelay);
 	tfTolerance = this->declare_parameter("tf_tolerance", tfTolerance);
 
@@ -4849,10 +4852,20 @@ void CoreWrapper::publishStats(const rclcpp::Time & stamp)
 		msg->header.stamp = stamp;
 		msg->header.frame_id = mapFrameId_;
 
+		std::map<int, rtabmap::Signature> signatures = stats.getSignaturesData();
+		if(!mapDataDescriptors_)
+		{
+			for(auto & iter : signatures)
+			{
+				iter.second.setWordsDescriptors(cv::Mat());
+				iter.second.sensorData().setFeatures(
+					iter.second.sensorData().keypoints(), iter.second.sensorData().keypoints3D(), cv::Mat());
+			}
+		}
 		rtabmap_conversions::mapDataToROS(
 			stats.poses(),
 			stats.constraints(),
-			stats.getSignaturesData(),
+			signatures,
 			stats.mapCorrection(),
 			*msg);
 
