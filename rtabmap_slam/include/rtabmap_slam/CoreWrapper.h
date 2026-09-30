@@ -363,6 +363,7 @@ private:
 
 	rclcpp::Publisher<rtabmap_msgs::msg::Info>::SharedPtr infoPub_;
 	rclcpp::Publisher<rtabmap_msgs::msg::MapData>::SharedPtr mapDataPub_;
+	bool mapDataDescriptors_ = true; // map_data_descriptors: include feature descriptors in live mapData
 	rclcpp::Publisher<rtabmap_msgs::msg::MapGraph>::SharedPtr mapGraphPub_;
 	rclcpp::Publisher<rtabmap_msgs::msg::MapGraph>::SharedPtr odomCachePub_;
 	rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr landmarksPub_;
