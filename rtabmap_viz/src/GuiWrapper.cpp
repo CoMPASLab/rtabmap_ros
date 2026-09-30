@@ -158,8 +158,11 @@ GuiWrapper::GuiWrapper(const rclcpp::NodeOptions & options) :
 	}
 	else
 	{
-	    infoTopic_.subscribe(this, "info", RCLCPP_QOS(this->getTopicQueueSize(), rclcpp::ReliabilityPolicy::SystemDefault));
-	    mapDataTopic_.subscribe(this, "mapData", RCLCPP_QOS(this->getTopicQueueSize(), rclcpp::ReliabilityPolicy::SystemDefault));
+	    // Reliable, like the publishers: SystemDefault resolves to best effort here, and a
+	    // multi-MB MapData message is lost whole if any of its UDP fragments is dropped. A lost
+	    // mapData also orphans its info in the exact-time sync, so the node never reaches the map.
+	    infoTopic_.subscribe(this, "info", RCLCPP_QOS(this->getTopicQueueSize(), rclcpp::ReliabilityPolicy::Reliable));
+	    mapDataTopic_.subscribe(this, "mapData", RCLCPP_QOS(this->getTopicQueueSize(), rclcpp::ReliabilityPolicy::Reliable));
 	    infoMapSync_ = new message_filters::Synchronizer<MyInfoMapSyncPolicy>(
 			    MyInfoMapSyncPolicy(this->getSyncQueueSize()),
 			    infoTopic_,
